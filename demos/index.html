@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Five production systems | Donald Cox</title>
+<style>
+/* ==== NB SHARED TOKENS v1 ====================================================
+   Keep this block byte-identical across all five demo files. If it changes,
+   run demos/sync-shared.py so every demo stays in step.
+   ========================================================================== */
+:root{
+  --ink:#0d1014;
+  --panel:#141920;
+  --panel-2:#1a212a;
+  --well:#0a0d11;
+  --rule:#28323d;
+  --rule-soft:#1f2731;
+  --text:#d5dde5;
+  --text-hi:#f2f6fa;
+  --dim:#8f9ba8;
+  --dimmer:#7f8b98;
+  --copper:#c9773c;
+  --copper-hi:#e69a55;
+  --copper-dim:#7a4823;
+  --ok:#6f9b6a;
+  --warn:#c2a03c;
+  --stop:#de6653;
+  --model:#7196b8;
+  --code:#c9773c;
+  --mono:ui-monospace,"SF Mono",SFMono-Regular,"Cascadia Mono",Menlo,Consolas,"Liberation Mono",monospace;
+  --serif:"Iowan Old Style","Palatino Linotype",Palatino,"Book Antiqua",Georgia,serif;
+  --t-fast:120ms cubic-bezier(.2,0,0,1);
+  --t-mech:260ms cubic-bezier(.33,0,.15,1);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--ink);
+  color:var(--text);
+  font-family:var(--mono);
+  font-size:14px;
+  line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+  background-image:
+    repeating-linear-gradient(0deg,rgba(255,255,255,.014) 0 1px,transparent 1px 3px),
+    radial-gradient(120% 80% at 50% -10%,rgba(201,119,60,.07),transparent 60%);
+}
+.wrap{max-width:1240px;margin:0 auto;padding:20px 18px 64px}
+.lab{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim)}
+.num{font-variant-numeric:tabular-nums}
+.prose{font-family:var(--serif);font-size:15.5px;line-height:1.62;color:var(--text)}
+.prose p{margin:0 0 .85em}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+.btn{
+  font-family:var(--mono);font-size:11px;letter-spacing:.13em;text-transform:uppercase;
+  padding:9px 16px;border:1px solid var(--rule);background:var(--panel-2);color:var(--text);
+  transition:border-color var(--t-fast),background var(--t-fast),color var(--t-fast);
+}
+.btn:hover:not(:disabled){border-color:var(--copper);color:var(--text-hi)}
+.btn:focus-visible{outline:2px solid var(--copper-hi);outline-offset:2px}
+.btn:disabled{opacity:.35;cursor:not-allowed}
+.btn-p{background:var(--copper);border-color:var(--copper);color:#160d06;font-weight:700}
+.btn-p:hover:not(:disabled){background:var(--copper-hi);border-color:var(--copper-hi);color:#160d06}
+.panel{background:var(--panel);border:1px solid var(--rule-soft)}
+.panel-hd{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  padding:9px 14px;border-bottom:1px solid var(--rule-soft);background:var(--panel-2);
+}
+.rule{height:1px;background:var(--rule-soft);border:0;margin:0}
+.sw{display:inline-flex;align-items:center;gap:9px;cursor:pointer;user-select:none}
+.sw input{position:absolute;opacity:0;width:0;height:0}
+.sw .track{
+  width:34px;height:16px;background:var(--well);border:1px solid var(--rule);
+  position:relative;flex:none;transition:border-color var(--t-fast),background var(--t-fast);
+}
+.sw .track::after{
+  content:"";position:absolute;top:1px;left:1px;width:12px;height:12px;background:var(--dimmer);
+  transition:transform var(--t-mech),background var(--t-mech);
+}
+.sw input:checked + .track{border-color:var(--copper-dim);background:#1b120a}
+.sw input:checked + .track::after{transform:translateX(16px);background:var(--copper)}
+.sw input:focus-visible + .track{outline:2px solid var(--copper-hi);outline-offset:2px}
+.sw .txt{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim)}
+.sw input:checked ~ .txt{color:var(--text)}
+.banner{
+  border:1px solid var(--rule-soft);border-left:2px solid var(--copper-dim);
+  background:linear-gradient(90deg,rgba(201,119,60,.06),transparent 60%);
+  padding:9px 14px;font-size:11.5px;color:var(--dim);margin-bottom:14px;line-height:1.6;
+}
+details.drawer{border:1px solid var(--rule-soft);background:var(--panel);margin-top:18px}
+details.drawer > summary{
+  padding:11px 14px;cursor:pointer;font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--dim);list-style:none;display:flex;align-items:center;gap:10px;
+}
+details.drawer > summary::-webkit-details-marker{display:none}
+details.drawer > summary::before{content:"+";color:var(--copper);font-weight:700}
+details.drawer[open] > summary::before{content:"-"}
+details.drawer > summary:hover{color:var(--text)}
+.drawer-body{padding:4px 18px 20px;border-top:1px solid var(--rule-soft)}
+@media (max-width:720px){ .wrap{padding:14px 12px 48px} }
+/* ==== END NB SHARED TOKENS ================================================ */
+
+.hero{padding:34px 0 26px;border-bottom:1px solid var(--rule);margin-bottom:26px}
+.hero h1{
+  font-size:clamp(22px,4.2vw,38px);letter-spacing:.16em;text-transform:uppercase;
+  margin:0 0 14px;font-weight:700;color:var(--text-hi);line-height:1.25;
+}
+.hero h1 span{color:var(--copper);display:block}
+.hero .lede{font-family:var(--serif);font-size:17px;line-height:1.6;color:var(--text);max-width:62ch;margin:0 0 12px}
+.hero .sub{font-size:12px;color:var(--dim);max-width:70ch;line-height:1.7}
+
+.thesis{
+  border:1px solid var(--rule-soft);border-left:2px solid var(--copper);
+  background:linear-gradient(90deg,rgba(201,119,60,.07),transparent 55%);
+  padding:16px 18px;margin-bottom:26px;
+}
+.thesis p{margin:0;font-family:var(--serif);font-size:16px;line-height:1.6;color:var(--text-hi)}
+.thesis small{display:block;margin-top:8px;font-family:var(--mono);font-size:11px;letter-spacing:.06em;color:var(--dim);line-height:1.7}
+
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,330px),1fr));gap:1px;background:var(--rule-soft);border:1px solid var(--rule-soft)}
+.card{
+  background:var(--panel);padding:20px;display:flex;flex-direction:column;gap:11px;
+  text-decoration:none;color:inherit;position:relative;overflow:hidden;
+  transition:background var(--t-mech);
+}
+.card::after{
+  content:"";position:absolute;left:0;right:0;bottom:0;height:2px;background:var(--copper);
+  transform:scaleX(0);transform-origin:left;transition:transform var(--t-mech);
+}
+.card:hover{background:var(--panel-2)}
+.card:hover::after{transform:scaleX(1)}
+.card:focus-visible{outline:2px solid var(--copper-hi);outline-offset:-2px}
+.card .n{font-size:34px;line-height:1;color:var(--copper);letter-spacing:.02em}
+.card h2{margin:0;font-size:14px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-hi);font-weight:700;line-height:1.4}
+.card .what{font-family:var(--serif);font-size:15px;line-height:1.55;color:var(--text);margin:0}
+.card .try{font-size:11px;color:var(--copper-hi);letter-spacing:.04em;line-height:1.6;margin-top:auto;padding-top:8px}
+.card .try b{display:block;font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim);font-weight:400;margin-bottom:3px}
+.card .stat{font-size:10.5px;color:var(--dim);letter-spacing:.03em;border-top:1px solid var(--rule-soft);padding-top:9px}
+
+.closing{margin-top:26px}
+.closing h3{font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--text-hi);margin:0 0 12px;font-weight:400}
+.rules{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,250px),1fr));gap:14px}
+.rules div{border-left:2px solid var(--copper-dim);padding:2px 0 2px 12px;font-size:12px;color:var(--dim);line-height:1.65}
+.rules div b{display:block;color:var(--text);font-weight:400;margin-bottom:2px}
+.foot{margin-top:30px;padding-top:16px;border-top:1px solid var(--rule);font-size:11px;color:var(--dimmer);line-height:1.8}
+</style>
+<meta name="description" content="Interactive browser demos of five production systems from one shop floor: intake, inventory sync, production ledger, shipping verification and an operations watcher. All on invented data.">
+<link rel="canonical" href="https://doncox.ai/demos/">
+<meta name="theme-color" content="#07090c">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://doncox.ai/demos/">
+<meta property="og:title" content="Five production systems | Donald Cox">
+<meta property="og:description" content="Interactive browser demos of five production systems from one shop floor: intake, inventory sync, production ledger, shipping verification and an operations watcher. All on invented data.">
+<meta property="og:site_name" content="Donald Cox">
+<meta property="og:image" content="https://doncox.ai/assets/og.jpg">
+<meta property="og:image:width" content="2400">
+<meta property="og:image:height" content="1260">
+<meta property="og:image:alt" content="Donald Cox: I design and build the AI systems that run businesses.">
+<meta name="twitter:image" content="https://doncox.ai/assets/og.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/favicon.ico" sizes="48x48">
+<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+</head>
+<body>
+<main>
+<div class="wrap">
+
+  <div class="hero">
+    <h1>Five production systems<span>one shop floor</span></h1>
+    <p class="lede">
+      Goods come in through the first one, get counted and routed by the second, get manufactured
+      and booked by the third, get verified on the way out by the fourth, and the fifth watches the
+      other four and says something when they quietly go wrong.
+    </p>
+    <p class="sub">
+      Every demo below is interactive and runs on invented data. The company is not named. Four of them have a switch that lets you break the process on purpose and watch the system refuse to be fooled. The ledger lets you work a batch from rack to receipt.
+    </p>
+  </div>
+
+  <div class="thesis">
+    <p>Use AI to see. Use code to decide.</p>
+    <small>
+      A vision model is very good at reading a small printed code off a box at an angle, and very
+      bad at being the last word on whether you should ship. So it never is. Every hard lesson in
+      this portfolio points the same way: when a model reads the discriminating text correctly and
+      then reasons past it, the answer is a deterministic check, never a better prompt.
+    </small>
+  </div>
+
+  <div class="grid">
+    <a class="card" href="01-intake.html">
+      <span class="n num">01</span>
+      <h2>Dock to storefront intake</h2>
+      <p class="what">Photograph a pallet. Get a lot-traced listing and a booked receipt, without anyone typing a part number.</p>
+      <span class="stat">By my own count, three people down to one on a phone, about an hour of combined work per pallet, estimated. On the reference intake a human re-read every label and matched the machine lot for lot across 180,000 units.</span>
+      <span class="try"><b>break it</b>Swap one photograph for a blank page and watch approval refuse to proceed.</span>
+    </a>
+
+    <a class="card" href="02-inventory-sync.html">
+      <span class="n num">02</span>
+      <h2>Daily inventory sync</h2>
+      <p class="what">The production plan, correct three times a day, with nobody exporting anything.</p>
+      <span class="stat">About a thousand reorder rows a run. The interesting part is the rule I deleted: it only ever fired on a row a human had deliberately changed.</span>
+      <span class="try"><b>break it</b>Turn the legacy rule back on and watch your own reassignment get quietly reverted.</span>
+    </a>
+
+    <a class="card" href="03-production-ledger.html">
+      <span class="n num">03</span>
+      <h2>Rack to receipt ledger</h2>
+      <p class="what">A stock rack that was in no system at all, turned into a full production lifecycle with printed travelers and labels.</p>
+      <span class="stat">While designing it, I found 101 units of demand on the wrong work station. Nobody had done anything wrong. Nothing had been watching.</span>
+      <span class="try"><b>try it</b>Cut a batch, print a label, scan the barcode with your phone.</span>
+    </a>
+
+    <a class="card" href="04-verification-kiosk.html">
+      <span class="n num">04</span>
+      <h2>Shipping verification kiosk</h2>
+      <p class="what">Every outbound order photographed, counted without the expected quantity, and checked against the order by code rather than by confidence alone.</p>
+      <span class="stat">First-try pass of 78.5 to 87.5 percent by month and station, at about $0.15 of model spend per order at list rates. Built to be time neutral for the operator on purpose.</span>
+      <span class="try"><b>break it</b>Choose the variant trap and ship the wrong variant, watch the check stop it, then turn the check off and watch the name match pass it.</span>
+    </a>
+
+    <a class="card" href="05-watchtower.html">
+      <span class="n num">05</span>
+      <h2>Operations watcher</h2>
+      <p class="what">It watches for the failure that leaves the dashboard green: the system said something was wrong, and nobody stopped.</p>
+      <span class="stat">Scans every five minutes in working hours for known failure classes. Its dark-station rule was written after a machine sat powered off for a weekend.</span>
+      <span class="try"><b>break it</b>Simulate a station going dark and watch a normal dashboard stay green.</span>
+    </a>
+  </div>
+
+  <div class="closing">
+    <h3>The rules behind them</h3>
+    <div class="rules">
+      <div><b>The AI perceives, the code decides.</b>Vision reads labels and counts boxes. It never renders the verdict.</div>
+      <div><b>The checker is not told the count.</b>Tell a model the target and you get a model that confirms the target.</div>
+      <div><b>Errors fail closed and loudly.</b>An error path that returns a pass is the most expensive bug in this class of system.</div>
+      <div><b>Flagged then passed gets surfaced.</b>Anything the system named and then let through becomes a finding with its evidence.</div>
+      <div><b>Verdict engine and prompt changes are replayed against real history.</b>Up to 2,830 stored final decisions, plus a control arm for prompt changes, before anything ships.</div>
+      <div><b>It runs on owned hardware where it can.</b>The server workload stays in-house.</div>
+    </div>
+  </div>
+
+  <div class="foot">
+    Demonstration environment. Invented company, invented catalog, synthetic photographs and
+    barcodes. The decision logic mirrors systems running in production at a manufacturer, which is
+    not named here. Timings are compressed, and each page says so where it matters.
+  </div>
+</div>
+</main>
+<footer style="padding:18px 14px;font:13px/1.5 system-ui,sans-serif;color:#9aa4af;background:#07090c">Made-up data. <a href="/" style="color:#7cc8ff">Donald Cox</a> · <a href="/donald-cox-resume.pdf" style="color:#7cc8ff">Resume</a> · <a href="mailto:don@doncox.ai" style="color:#7cc8ff">don@doncox.ai</a> · <a href="/privacy/" style="color:#7cc8ff">Privacy</a> · <a href="/terms/" style="color:#7cc8ff">Terms</a></footer>
+</body>
+</html>

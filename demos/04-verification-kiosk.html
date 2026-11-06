@@ -1,0 +1,1431 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Shipping Verification Kiosk | Donald Cox</title>
+<style>
+/* ==== NB SHARED TOKENS v1 ====================================================
+   Keep this block byte-identical across all five demo files. If it changes,
+   run demos/sync-shared.py so every demo stays in step.
+   ========================================================================== */
+:root{
+  --ink:#0d1014;
+  --panel:#141920;
+  --panel-2:#1a212a;
+  --well:#0a0d11;
+  --rule:#28323d;
+  --rule-soft:#1f2731;
+  --text:#d5dde5;
+  --text-hi:#f2f6fa;
+  --dim:#8f9ba8;
+  --dimmer:#7f8b98;
+  --copper:#c9773c;
+  --copper-hi:#e69a55;
+  --copper-dim:#7a4823;
+  --ok:#6f9b6a;
+  --warn:#c2a03c;
+  --stop:#de6653;
+  --model:#7196b8;
+  --code:#c9773c;
+  --mono:ui-monospace,"SF Mono",SFMono-Regular,"Cascadia Mono",Menlo,Consolas,"Liberation Mono",monospace;
+  --serif:"Iowan Old Style","Palatino Linotype",Palatino,"Book Antiqua",Georgia,serif;
+  --t-fast:120ms cubic-bezier(.2,0,0,1);
+  --t-mech:260ms cubic-bezier(.33,0,.15,1);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--ink);
+  color:var(--text);
+  font-family:var(--mono);
+  font-size:14px;
+  line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+  background-image:
+    repeating-linear-gradient(0deg,rgba(255,255,255,.014) 0 1px,transparent 1px 3px),
+    radial-gradient(120% 80% at 50% -10%,rgba(201,119,60,.07),transparent 60%);
+}
+.wrap{max-width:1240px;margin:0 auto;padding:20px 18px 64px}
+.lab{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim)}
+.num{font-variant-numeric:tabular-nums}
+.prose{font-family:var(--serif);font-size:15.5px;line-height:1.62;color:var(--text)}
+.prose p{margin:0 0 .85em}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+.btn{
+  font-family:var(--mono);font-size:11px;letter-spacing:.13em;text-transform:uppercase;
+  padding:9px 16px;border:1px solid var(--rule);background:var(--panel-2);color:var(--text);
+  transition:border-color var(--t-fast),background var(--t-fast),color var(--t-fast);
+}
+.btn:hover:not(:disabled){border-color:var(--copper);color:var(--text-hi)}
+.btn:focus-visible{outline:2px solid var(--copper-hi);outline-offset:2px}
+.btn:disabled{opacity:.35;cursor:not-allowed}
+.btn-p{background:var(--copper);border-color:var(--copper);color:#160d06;font-weight:700}
+.btn-p:hover:not(:disabled){background:var(--copper-hi);border-color:var(--copper-hi);color:#160d06}
+.panel{background:var(--panel);border:1px solid var(--rule-soft)}
+.panel-hd{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  padding:9px 14px;border-bottom:1px solid var(--rule-soft);background:var(--panel-2);
+}
+.rule{height:1px;background:var(--rule-soft);border:0;margin:0}
+.sw{display:inline-flex;align-items:center;gap:9px;cursor:pointer;user-select:none}
+.sw input{position:absolute;opacity:0;width:0;height:0}
+.sw .track{
+  width:34px;height:16px;background:var(--well);border:1px solid var(--rule);
+  position:relative;flex:none;transition:border-color var(--t-fast),background var(--t-fast);
+}
+.sw .track::after{
+  content:"";position:absolute;top:1px;left:1px;width:12px;height:12px;background:var(--dimmer);
+  transition:transform var(--t-mech),background var(--t-mech);
+}
+.sw input:checked + .track{border-color:var(--copper-dim);background:#1b120a}
+.sw input:checked + .track::after{transform:translateX(16px);background:var(--copper)}
+.sw input:focus-visible + .track{outline:2px solid var(--copper-hi);outline-offset:2px}
+.sw .txt{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim)}
+.sw input:checked ~ .txt{color:var(--text)}
+.banner{
+  border:1px solid var(--rule-soft);border-left:2px solid var(--copper-dim);
+  background:linear-gradient(90deg,rgba(201,119,60,.06),transparent 60%);
+  padding:9px 14px;font-size:11.5px;color:var(--dim);margin-bottom:14px;line-height:1.6;
+}
+details.drawer{border:1px solid var(--rule-soft);background:var(--panel);margin-top:18px}
+details.drawer > summary{
+  padding:11px 14px;cursor:pointer;font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--dim);list-style:none;display:flex;align-items:center;gap:10px;
+}
+details.drawer > summary::-webkit-details-marker{display:none}
+details.drawer > summary::before{content:"+";color:var(--copper);font-weight:700}
+details.drawer[open] > summary::before{content:"-"}
+details.drawer > summary:hover{color:var(--text)}
+.drawer-body{padding:4px 18px 20px;border-top:1px solid var(--rule-soft)}
+@media (max-width:720px){ .wrap{padding:14px 12px 48px} }
+/* ==== END NB SHARED TOKENS ================================================ */
+
+.mast{
+  display:flex;align-items:baseline;justify-content:space-between;gap:16px;flex-wrap:wrap;
+  border-bottom:1px solid var(--rule);padding-bottom:10px;margin-bottom:14px;
+}
+.mast h1{font-size:15px;letter-spacing:.2em;text-transform:uppercase;margin:0;font-weight:700;color:var(--text-hi)}
+.mast h1 span{color:var(--copper)}
+.readout{display:flex;align-items:center;gap:14px;font-size:11px;color:var(--dim);letter-spacing:.1em}
+.readout b{color:var(--text);font-weight:400}
+
+.stage{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start}
+@media (max-width:960px){ .stage{grid-template-columns:1fr} }
+
+.orderbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:11px 14px;margin-bottom:14px}
+.orderbar select{
+  font-family:var(--mono);font-size:12px;background:var(--well);color:var(--text);
+  border:1px solid var(--rule);padding:7px 9px;
+}
+.orderbar select:focus-visible{outline:2px solid var(--copper-hi);outline-offset:1px}
+.wellnum{background:var(--well);border:1px solid var(--rule);padding:5px 11px;font-size:15px;letter-spacing:.08em;color:var(--copper-hi)}
+
+.frames{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;padding:14px}
+.frame{position:relative;background:var(--well);border:1px solid var(--rule);aspect-ratio:4/3;overflow:hidden}
+.frame svg{display:block;width:100%;height:100%}
+.frame .cap{
+  position:absolute;left:0;right:0;bottom:0;padding:3px 6px;background:rgba(10,13,17,.85);
+  font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);
+}
+.frame.empty{display:flex;align-items:center;justify-content:center;color:var(--dimmer);font-size:10px;letter-spacing:.14em}
+.frame.shot{animation:flash 380ms ease-out}
+@keyframes flash{0%{filter:brightness(2.4)}100%{filter:none}}
+.capbar{display:flex;gap:9px;align-items:center;padding:0 14px 14px;flex-wrap:wrap}
+
+.seam{display:grid;grid-template-columns:1fr auto 1fr}
+.seam-col{padding:14px}
+.seam-hd{font-size:10px;letter-spacing:.14em;text-transform:uppercase;margin-bottom:9px}
+.seam-hd.m{color:var(--model)}
+.seam-hd.c{color:var(--code)}
+.divider{width:1px;background:linear-gradient(180deg,transparent,var(--rule) 12%,var(--rule) 88%,transparent);position:relative}
+.divider span{
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) rotate(90deg);
+  font-size:9px;letter-spacing:.3em;text-transform:uppercase;color:var(--dimmer);
+  background:var(--panel);padding:5px 7px;white-space:nowrap;
+}
+@media (max-width:720px){
+  .seam{grid-template-columns:1fr}
+  .divider{width:auto;height:auto;background:none;border-top:1px solid var(--rule);text-align:center}
+  .divider span{position:static;transform:none;display:block;background:none;white-space:normal;padding:6px 0 0}
+}
+.seam-item{border-left:2px solid var(--model);padding:5px 0 5px 9px;margin-bottom:7px;font-size:11.5px;color:var(--dim)}
+.seam-col.code .seam-item{border-left-color:var(--code)}
+.seam-item b{display:block;color:var(--text);font-weight:400}
+.seam-item.mute{border-left-color:var(--dimmer);color:var(--dimmer)}
+@media (max-width:600px){
+  .seam{grid-template-columns:1fr}
+}
+
+.lineitem{padding:12px 14px;border-bottom:1px solid var(--rule-soft)}
+.lineitem:last-child{border-bottom:0}
+.li-top{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:baseline}
+.li-sku{font-size:12.5px;color:var(--text-hi);letter-spacing:.04em}
+.li-name{font-size:11px;color:var(--dim)}
+.li-read{font-size:11px;color:var(--model);margin-top:5px}
+.li-read code{background:var(--well);border:1px solid var(--rule-soft);padding:1px 5px;color:var(--text)}
+.meter{position:relative;height:20px;background:var(--well);border:1px solid var(--rule);margin-top:14px}
+.meter .fill{position:absolute;top:0;bottom:0;left:0;width:0;background:var(--model);opacity:.5;transition:width 700ms cubic-bezier(.33,0,.15,1)}
+.meter .floor{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--code)}
+.meter .floorlab{position:absolute;top:-14px;font-size:8.5px;letter-spacing:.1em;color:var(--code);white-space:nowrap;transform:translateX(-50%)}
+.meter .val{position:absolute;left:0;top:-14px;font-size:11px;color:var(--text-hi)}
+.flagrow{margin-top:8px;display:flex;flex-direction:column;gap:5px}
+.flag{font-size:11px;padding:5px 9px;border-left:2px solid var(--rule);background:var(--panel-2);color:var(--dim);line-height:1.55}
+.flag.stop{border-left-color:var(--stop);color:#e2a79f}
+.flag.warn{border-left-color:var(--warn);color:#dcc684}
+.flag.ok{border-left-color:var(--ok);color:#a9c9a4}
+
+.verdict{display:flex;align-items:center;gap:16px;padding:14px;border-top:1px solid var(--rule);flex-wrap:wrap}
+.vstamp{font-size:20px;letter-spacing:.22em;padding:8px 20px;border:2px solid;font-weight:700}
+.vstamp[data-v="PASS"]{color:var(--ok);border-color:var(--ok)}
+.vstamp[data-v="REVIEW"]{color:var(--warn);border-color:var(--warn)}
+.vstamp[data-v="HOLD"]{color:var(--stop);border-color:var(--stop)}
+.vstamp[data-v="RUNNING"]{color:var(--dim);border-color:var(--rule)}
+.vnote{font-size:11.5px;color:var(--dim);flex:1;min-width:180px}
+.acts{display:flex;gap:8px;flex-wrap:wrap}
+.notebox{width:100%;margin-top:10px;display:none}
+.notebox.on{display:block}
+.notebox textarea{
+  width:100%;min-height:56px;background:var(--well);border:1px solid var(--rule);color:var(--text);
+  font-family:var(--mono);font-size:12px;padding:8px;resize:vertical;margin-top:5px;
+}
+.notebox textarea:focus-visible{outline:2px solid var(--copper-hi);outline-offset:1px}
+
+.switches{display:flex;flex-wrap:wrap;gap:10px 24px;padding:12px 14px}
+.compare{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}
+@media (max-width:760px){ .compare{grid-template-columns:1fr} }
+.cmp{border:1px solid var(--rule-soft);padding:12px;background:var(--panel-2)}
+.cmp h4{margin:0 0 8px;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);font-weight:400}
+
+.signin{position:fixed;inset:0;background:rgba(8,10,13,.94);z-index:50;display:flex;align-items:center;justify-content:center;padding:20px}
+.signin.off{display:none}
+.signin-card{background:var(--panel);border:1px solid var(--rule);padding:28px 30px;max-width:400px;width:100%}
+.signin-card h2{margin:0 0 6px;font-size:13px;letter-spacing:.2em;text-transform:uppercase;color:var(--text-hi)}
+.signin-card p{margin:0 0 18px;font-size:11.5px;color:var(--dim);line-height:1.6}
+.who{display:flex;flex-direction:column;gap:8px}
+
+.record{padding:14px;border-top:1px solid var(--rule-soft)}
+.trail{margin:0;padding:0;border-left:1px solid var(--rule);margin-left:6px}
+.trail li{list-style:none;position:relative;padding:0 0 12px 18px;font-size:11.5px;color:var(--dim);line-height:1.6}
+.trail li::before{content:"";position:absolute;left:-4px;top:6px;width:7px;height:7px;background:var(--copper)}
+.trail li b{color:var(--text);font-weight:400}
+.trail li.mute{color:var(--dimmer)}
+/* overflow guards for phone widths: grid and flex children may not exceed the page */
+.stage > *,.lab-grid > *{min-width:0}
+.orderbar select{max-width:100%}
+.orderbar .lab,.panel-hd .lab{overflow-wrap:anywhere}
+.panel-hd{flex-wrap:wrap}
+.li-read code{overflow-wrap:anywhere}
+.mast h1{overflow-wrap:anywhere}
+
+.lab-intro{padding:12px 14px;margin:0;font-size:12px;color:var(--dim);line-height:1.65}
+.lab-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,340px),1fr));gap:12px;padding:0 14px 14px}
+.labcard{border:1px solid var(--rule-soft);background:var(--panel-2);padding:12px;display:flex;flex-direction:column;gap:9px}
+.labcard-t{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-hi);margin:0}
+.labcard-p{font-size:11.5px;color:var(--dim);line-height:1.6;margin:0}
+.labctl{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.labctl select{font-family:var(--mono);font-size:11px;background:var(--well);color:var(--text);border:1px solid var(--rule);padding:6px 7px;max-width:100%}
+.labctl select:focus-visible{outline:2px solid var(--copper-hi);outline-offset:1px}
+.labrow{font-size:11.5px;padding:5px 9px;border-left:2px solid var(--rule);line-height:1.55;color:var(--dim);overflow-wrap:anywhere}
+.labrow.m{border-left-color:var(--model)}
+.labrow.c{border-left-color:var(--code)}
+.labrow b{font-weight:400;color:var(--text)}
+.mini{display:inline-block;font-size:12px;letter-spacing:.18em;font-weight:700;padding:4px 10px;border:2px solid var(--rule);color:var(--dim);align-self:flex-start}
+.mini[data-v="ok"]{color:var(--ok);border-color:var(--ok)}
+.mini[data-v="warn"]{color:var(--warn);border-color:var(--warn)}
+.mini[data-v="stop"]{color:var(--stop);border-color:var(--stop)}
+.gates{width:100%;border-collapse:collapse;font-size:11.5px}
+.gates th,.gates td{text-align:left;padding:6px 8px 6px 0;border-bottom:1px solid var(--rule-soft);vertical-align:top}
+.gates th{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim);font-weight:400}
+.gates td.good{color:var(--ok)}
+.gates td.bad{color:var(--stop)}
+.tablewrap{overflow-x:auto}
+.harness{padding:0 14px 14px;display:flex;flex-direction:column;gap:10px}
+body{overflow-wrap:break-word}
+.sw input:disabled ~ .track,.sw input:disabled ~ .txt{opacity:.45;cursor:not-allowed}
+</style>
+<meta name="description" content="Interactive demo: a vision model reads the box and code decides the verdict. Ship the wrong variant and watch the deterministic check stop it. Runs on invented data.">
+<link rel="canonical" href="https://doncox.ai/demos/04-verification-kiosk.html">
+<meta name="theme-color" content="#07090c">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://doncox.ai/demos/04-verification-kiosk.html">
+<meta property="og:title" content="Shipping Verification Kiosk | Donald Cox">
+<meta property="og:description" content="Interactive demo: a vision model reads the box and code decides the verdict. Ship the wrong variant and watch the deterministic check stop it. Runs on invented data.">
+<meta property="og:site_name" content="Donald Cox">
+<meta property="og:image" content="https://doncox.ai/assets/og.jpg">
+<meta property="og:image:width" content="2400">
+<meta property="og:image:height" content="1260">
+<meta property="og:image:alt" content="Donald Cox: I design and build the AI systems that run businesses.">
+<meta name="twitter:image" content="https://doncox.ai/assets/og.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/favicon.ico" sizes="48x48">
+<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+</head>
+<body>
+<main>
+<div class="wrap">
+
+  <div class="banner">
+    Demonstration environment. Invented company, invented catalog, invented orders, synthetic
+    photographs. It reproduces the decision logic of a system running in production at a
+    manufacturer. Timings are compressed for the demo.
+  </div>
+
+  <div class="mast">
+    <h1>Northbeam <span>Precision</span> / Packing Station 1</h1>
+    <div class="readout">
+      <span>ON STATION</span>
+      <b class="num" id="clock">00:00:00</b>
+      <span>ET</span>
+      <span id="whoami" style="color:var(--copper-hi)"></span>
+    </div>
+  </div>
+
+  <div class="panel orderbar">
+    <span class="lab">Order</span>
+    <span class="wellnum num" id="orderno">NB-20114</span>
+    <select id="scenario" aria-label="Choose an order"></select>
+    <span class="lab" style="margin-left:auto" id="scenblurb"></span>
+  </div>
+
+  <div class="stage">
+    <section class="panel">
+      <div class="panel-hd">
+        <span class="lab">Capture</span>
+        <span class="lab" id="capstate">0 of 3 frames</span>
+      </div>
+      <div class="frames" id="frames"></div>
+      <div class="capbar">
+        <button class="btn btn-p" id="shoot">Shoot next frame</button>
+        <button class="btn" id="verify" disabled>Run verification</button>
+        <button class="btn" id="reset">Reset</button>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-hd">
+        <span class="lab">The seam</span>
+        <span class="lab">model perceives / code decides</span>
+      </div>
+      <div class="seam">
+        <div class="seam-col model">
+          <div class="seam-hd m">What the model was given</div>
+          <div id="seamModel"></div>
+        </div>
+        <div class="divider"><span>blind</span></div>
+        <div class="seam-col code">
+          <div class="seam-hd c">What the code knew</div>
+          <div id="seamCode"></div>
+        </div>
+      </div>
+      <hr class="rule">
+      <p style="padding:12px 14px;margin:0;font-size:12px;color:var(--dim);line-height:1.65">
+        The expected quantity is never sent to the model. It reports what it sees, per line, and
+        code does the comparing. The check is blind on quantity and slip number. The expected lot is shown to the model, and
+        the lab below shows what that leaves open.
+      </p>
+    </section>
+  </div>
+
+  <section class="panel" style="margin-top:14px">
+    <div class="panel-hd">
+      <span class="lab">Per line result</span>
+      <span class="lab num" id="latency"></span>
+    </div>
+    <div id="lines"></div>
+    <div class="verdict">
+      <span class="vstamp" data-v="RUNNING" id="vstamp">READY</span>
+      <span class="vnote" id="vnote">Sign in, capture the frames, run the verification.</span>
+      <span class="acts">
+        <button class="btn" id="aRetake" disabled>Retake</button>
+        <button class="btn" id="aOverride" disabled>Override with note</button>
+        <button class="btn" id="aReject" disabled>Reject</button>
+        <button class="btn btn-p" id="aFinalize" disabled>Finalize</button>
+      </span>
+      <div class="notebox" id="notebox">
+        <label class="lab" for="noteta">Written reason, required</label>
+        <textarea id="noteta" maxlength="300" placeholder="Why is this being overridden?"></textarea>
+        <div style="margin-top:8px"><button class="btn" id="noteSubmit">Record and finalize</button></div>
+      </div>
+    </div>
+    <div class="record" id="record" style="display:none"></div>
+  </section>
+
+  <section class="panel" style="margin-top:14px">
+    <div class="panel-hd">
+      <span class="lab">Sabotage and engine switches</span>
+      <span class="lab">break it on purpose</span>
+    </div>
+    <div class="switches">
+      <label class="sw"><input type="checkbox" id="swSwap"><span class="track"></span><span class="txt">Ship the standard variant against the adjust line (only on order NB-20115, the variant trap)</span></label>
+      <label class="sw"><input type="checkbox" id="swShort"><span class="track"></span><span class="txt">Ship one short</span></label>
+      <label class="sw"><input type="checkbox" id="swBlur"><span class="track"></span><span class="txt">Unreadable label</span></label>
+    </div>
+    <hr class="rule">
+    <div class="switches">
+      <label class="sw"><input type="checkbox" id="enDet" checked><span class="track"></span><span class="txt">Deterministic variant check</span></label>
+      <label class="sw"><input type="checkbox" id="enUnit" checked><span class="track"></span><span class="txt">Unit normalization</span></label>
+      <label class="sw"><input type="checkbox" id="enGroup" checked><span class="track"></span><span class="txt">Group total equals sum of lines</span></label>
+      <label class="sw"><input type="checkbox" id="enFail" checked><span class="track"></span><span class="txt">Fail closed on read error</span></label>
+    </div>
+    <p id="switchNote" style="padding:0 14px 14px;margin:0;font-size:12px;color:var(--dim);line-height:1.65"></p>
+    <div id="cmpWrap" style="padding:0 14px 16px;display:none">
+      <div class="compare">
+        <div class="cmp"><h4>Name match only</h4><div id="cmpA"></div></div>
+        <div class="cmp"><h4>With the deterministic check</h4><div id="cmpB"></div></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel" style="margin-top:14px" id="lab">
+    <div class="panel-hd">
+      <span class="lab">November lab</span>
+      <span class="lab">six ways to break it</span>
+    </div>
+    <p class="lab-intro">Each card replays a real failure with recorded answers, so it behaves the same
+      every time. Steel blue is what the model said. Copper is what code decided. No live model runs here.</p>
+    <div class="lab-grid">
+
+      <div class="labcard">
+        <p class="labcard-t">Blank lot</p>
+        <p class="labcard-p">Carton fronts with no lot on them. The model cites the slip and answers 0.95. A slip is printed from the order, so it can't prove what is in the box.</p>
+        <div class="labctl"><label class="sw"><input type="checkbox" id="labLotGate" checked><span class="track"></span><span class="txt">Lot must be read off the box</span></label></div>
+        <div id="outLot"></div>
+      </div>
+
+      <div class="labcard">
+        <p class="labcard-t">Launder a stop</p>
+        <p class="labcard-p">Identical retries can flip a verdict, so resubmitting a stop can produce a pass. Submit the same photos and watch the raw answer change.</p>
+        <div class="labctl">
+          <label class="sw"><input type="checkbox" id="labCarry" checked><span class="track"></span><span class="txt">Carry the stop forward</span></label>
+        </div>
+        <div class="labctl">
+          <button class="btn" id="labSame">Submit same photos</button>
+          <button class="btn" id="labNew">Add a photo</button>
+          <button class="btn" id="labRestart">Start over</button>
+        </div>
+        <div id="outCarry"></div>
+      </div>
+
+      <div class="labcard">
+        <p class="labcard-t">Ghost frame</p>
+        <p class="labcard-p">The goods get moved, then the packer presses capture. A queued camera stream can hand back the table as it was before the press.</p>
+        <div class="labctl">
+          <label class="sw"><input type="checkbox" id="labFresh" checked><span class="track"></span><span class="txt">Wait for a fresh frame</span></label>
+          <select id="labIdle" aria-label="Seconds the camera sat idle"></select>
+        </div>
+        <div id="outGhost"></div>
+      </div>
+
+      <div class="labcard">
+        <p class="labcard-t">Two lots</p>
+        <p class="labcard-p">One product in two lots, 5 cartons of each. A strict schema writes fields in order, so a count placed before the reasoning commits the model early.</p>
+        <div class="labctl"><label class="sw"><input type="checkbox" id="labWorksheet" checked><span class="track"></span><span class="txt">Lot worksheet, notes before count</span></label></div>
+        <div id="outTwo"></div>
+      </div>
+
+      <div class="labcard">
+        <p class="labcard-t">Slip misread</p>
+        <p class="labcard-p">Lookalike characters fold only where the expected number has a letter. Digits must match as read, because a misread digit and a real wrong slip look the same to code.</p>
+        <div class="labctl">
+          <label class="sw"><input type="checkbox" id="labFold" checked><span class="track"></span><span class="txt">Fold the letter prefix</span></label>
+          <select id="labSlip" aria-label="Slip number as the model read it"></select>
+        </div>
+        <div id="outSlip"></div>
+      </div>
+
+      <div class="labcard">
+        <p class="labcard-t">Format break</p>
+        <p class="labcard-p">Without a schema, some answers arrive with prose around the JSON or cut off. Recovery is flagged and never silently trusted. A schema fixes this and nothing else.</p>
+        <div class="labctl">
+          <label class="sw"><input type="checkbox" id="labSchema" checked><span class="track"></span><span class="txt">Structured output</span></label>
+          <button class="btn" id="labNext">Next answer</button>
+        </div>
+        <div id="outFormat"></div>
+      </div>
+
+    </div>
+  </section>
+
+  <section class="panel" style="margin-top:14px" id="harness">
+    <div class="panel-hd">
+      <span class="lab">Release harness</span>
+      <span class="lab">gates are written before the run</span>
+    </div>
+    <p class="lab-intro">Each candidate runs against archived orders, next to the serving prompt. These are
+      recorded results from real replay runs, shown on the fictional fixtures.</p>
+    <div class="harness">
+      <div class="labctl">
+        <select id="hCand" aria-label="Candidate to replay"></select>
+        <button class="btn btn-p" id="hRun">Replay the candidate</button>
+        <button class="btn" id="hEdit" disabled>Edit the failed gate</button>
+      </div>
+      <div class="tablewrap"><table class="gates"><thead><tr><th scope="col">Gate</th><th scope="col">Required</th><th scope="col">Result</th><th scope="col">Status</th></tr></thead><tbody id="hBody"></tbody></table></div>
+      <div id="hOut"></div>
+      <div class="labctl" id="hRuling" style="display:none">
+        <button class="btn" id="hShip">Rule: ship it</button>
+        <button class="btn" id="hHold">Rule: do not ship</button>
+      </div>
+      <div id="hRuled"></div>
+      <hr class="rule">
+      <p class="labcard-t">Test the test</p>
+      <p class="labcard-p">Two different candidates caused the same false stop. Either the order is fragile or the rig favors one arm. An A/A run gives both arms the live prompt, with only a code comment added to one.</p>
+      <div class="labctl"><button class="btn" id="aaRun">Run the A/A test</button></div>
+      <div id="aaOut"></div>
+    </div>
+  </section>
+
+  <details class="drawer">
+    <summary>How this works</summary>
+    <div class="drawer-body">
+      <div class="prose">
+        <p><b>Shape.</b> A small PC and a touchscreen at the packing bench, a camera on a mast, and
+        one pipeline in a self-hosted workflow engine: 72 nodes, five webhook entry points, and two
+        code nodes that carry all the judgment. One builds the vision request. One parses the reply
+        and renders the verdict.</p>
+
+        <p><b>Ground truth is the order system, not the paperwork.</b> The packing slip is a printed
+        artifact that can be wrong, and worse, it shows the expected quantity in a place a vision
+        model can read. Counts come from the order lines. The slip is photographed for the record and
+        the prompt carries an explicit prohibition on deriving counts from it.</p>
+
+        <p><b>Confidence has a floor per product category.</b> High risk categories get a strict
+        floor, low risk categories get a loose one, and some categories are marked
+        manual-confirm-only and bypass the model entirely by design, with a written human note
+        required.</p>
+
+        <p><b>Deterministic checks sit on top.</b> Three of them each exist because of a real confirmed wrong shipment, and all three have the same signature: the model read the discriminating text
+        correctly and then reasoned past it in its own summary sentence. The variant check here is
+        the third of that family. A premium variant and a standard variant have names
+        where the standard is a strict substring of the premium, and a fuzzy name match has no
+        penalty for an absent qualifier, so the cheaper part scores near perfect against the premium
+        line. The check reads the variant off the SKU, which is order-system ground truth, and hard
+        fails when the transcribed marking disagrees. It is a gate: it can only add a stop, which is what makes it safe to ship. The engine also has narrow lifts, which can turn a stop into a pass and each need stated evidence. In all, the engine has 9 hold conditions and more than a dozen review conditions.</p>
+
+        <p><b>Two live subtleties this demo reproduces exactly.</b> A merged order can put the same
+        product on two separate lines, so keying by product identity compares a frame total against
+        one line and holds correct goods. Measured on real traffic: 4 orders in 569 carry a duplicate
+        key and none had ever passed. And the camera sees raw units while the order line is in sale
+        units, so a perfect read scores as a mismatch on every case-packed line unless the count is
+        normalized before it is compared.</p>
+
+        <p><b>Release discipline.</b> The verdict engine has reached v2.66, with more than a dozen releases served since August. Every engine change is replayed against stored history before it goes live: up to 232 retained runs and 2,830 stored final decisions. The stored decisions compare old code with new and nothing else. Prompt changes run through a paired rig with a control arm and gates written before the run. Deploys check the engine is idle, write both version rows in one transaction, need no restart, and roll back with one command.</p>
+
+        <p><b>Measured in production.</b> Roughly 40 orders a working day. First-try pass ran 78.5 to
+        87.5 percent by month and station from August to October. About 9 seconds a verify on structured
+        outputs, from one partial day, and about $0.15 of model spend per order at list rates. It was
+        built to be time neutral on purpose, because a check that slows the floor gets ripped out.</p>
+
+        <p><b>Also measured, and published on purpose.</b> Of 16 override-and-ship finalizes, 7
+        overrode a hold. The 3 of those checked from photos all had correct goods. A stop that is
+        wrong often enough teaches operators to click through, so the false-stop classes were then
+        chased down. Anyone who has run a quality gate recognizes that risk.</p>
+      </div>
+    </div>
+  </details>
+
+</div>
+
+<div class="signin" id="signin">
+  <div class="signin-card">
+    <h2>Sign in</h2>
+    <p>No PIN, by decision. Every action is attributed to a name, and the server rejects any state
+       change that arrives without one, so the gate cannot be bypassed by hitting the API.</p>
+    <div class="who">
+      <button class="btn" data-who="Operator A">Operator A</button>
+      <button class="btn" data-who="Operator B">Operator B</button>
+    </div>
+  </div>
+</div>
+
+</main>
+<script>
+"use strict";
+/* =========================================================================
+   Northbeam Precision, demo world. Nothing here derives from real data.
+   All rendering is explicit DOM construction. No markup is ever built from
+   a string, so operator-entered text cannot become markup.
+   ========================================================================= */
+
+/* label     = what is printed on the carton, drawn into the synthetic photograph
+   labelName = the product line of that label, which is what a name match scores against.
+               Brand and part-code lines are not product identity and must not dilute it. */
+const CATALOG = {
+  "NB-ABR-050-STD": { name:"Abrasive Disc 50 mm, Standard", family:"ABR", floor:0.90,
+                      label:["NORTHBEAM","ABR-050","ABRASIVE DISC 50 STD","50 PER PACK"],
+                      labelName:"ABRASIVE DISC 50 STD",
+                      packUnits:10, packWord:"pack", saleWord:"case" },
+  "NB-ABR-120-STD": { name:"Abrasive Disc 120 mm, Standard", family:"ABR", floor:0.90,
+                      label:["NORTHBEAM","ABR-120","ABRASIVE DISC 120 STD","50 PER PACK"],
+                      labelName:"ABRASIVE DISC 120 STD",
+                      packUnits:10, packWord:"pack", saleWord:"case" },
+  "NB-TRQ-014-ADJ": { name:"Torque Head 14, Micro-Adjust", family:"TRQ", floor:0.95,
+                      label:["NORTHBEAM","TRQ-014","TORQUE HEAD 14","MICRO-ADJ"],
+                      labelName:"TORQUE HEAD 14 MICRO-ADJ",
+                      packUnits:1, packWord:"each", saleWord:"each" },
+  "NB-TRQ-014-STD": { name:"Torque Head 14, Standard", family:"TRQ", floor:0.95,
+                      label:["NORTHBEAM","TRQ-014","TORQUE HEAD 14",""],
+                      labelName:"TORQUE HEAD 14",
+                      packUnits:1, packWord:"each", saleWord:"each" },
+  "NB-ROD-0375-STD":{ name:"Guide Rod 0.375, Standard", family:"ROD", floor:0.92,
+                      label:["NORTHBEAM","ROD-0375","GUIDE ROD 0.375 STD",""],
+                      labelName:"GUIDE ROD 0.375 STD",
+                      packUnits:1, packWord:"each", saleWord:"each" },
+  "NB-GAU-200-STD": { name:"Alignment Gauge 200", family:"GAU", floor:null, manualOnly:true,
+                      label:["NORTHBEAM","GAU-200","ALIGNMENT GAUGE 200",""],
+                      labelName:"ALIGNMENT GAUGE 200",
+                      packUnits:1, packWord:"each", saleWord:"each" }
+};
+
+/* lines = order truth. shipped = what is physically in the box. */
+const ORDERS = [
+  { id:"NB-20114", blurb:"the happy path",
+    lines:[{sku:"NB-ABR-050-STD",qty:2}], shipped:[{sku:"NB-ABR-050-STD",units:20}] },
+  { id:"NB-20115", blurb:"the variant trap",
+    lines:[{sku:"NB-TRQ-014-ADJ",qty:1}], shipped:[{sku:"NB-TRQ-014-ADJ",units:1}] },
+  { id:"NB-20116", blurb:"merged order, same SKU on two lines",
+    lines:[{sku:"NB-ROD-0375-STD",qty:1},{sku:"NB-ROD-0375-STD",qty:1}], shipped:[{sku:"NB-ROD-0375-STD",units:2}] },
+  { id:"NB-20117", blurb:"unit of measure",
+    lines:[{sku:"NB-ABR-120-STD",qty:1}], shipped:[{sku:"NB-ABR-120-STD",units:10}] },
+  { id:"NB-20118", blurb:"too many parts, too few frames",
+    lines:[{sku:"NB-ROD-0375-STD",qty:14}], shipped:[{sku:"NB-ROD-0375-STD",units:14,crowded:true}] },
+  { id:"NB-20119", blurb:"manual confirm only",
+    lines:[{sku:"NB-GAU-200-STD",qty:1}], shipped:[{sku:"NB-GAU-200-STD",units:1}] },
+  { id:"NB-20120", blurb:"clears at exactly the floor",
+    lines:[{sku:"NB-TRQ-014-ADJ",qty:1}], shipped:[{sku:"NB-TRQ-014-ADJ",units:1,conf:0.95}] }
+];
+
+const FRAME_PLAN = [
+  { type:"slip",  cap:"Packing slip" },
+  { type:"goods", cap:"Goods, frame 1" },
+  { type:"goods", cap:"Goods, frame 2" }
+];
+
+const S = { who:null, order:ORDERS[0], shotCount:0, result:null, running:false, runId:0, justShot:-1, finalized:false };
+const $ = id => document.getElementById(id);
+
+/* ---------------- DOM helpers, no markup strings ---------------- */
+function el(tag, opts, kids){
+  const n = document.createElement(tag);
+  if(opts){
+    if(opts.cls) n.className = opts.cls;
+    if(opts.text != null) n.textContent = opts.text;
+    if(opts.style) n.setAttribute("style", opts.style);
+    if(opts.attrs) for(const k in opts.attrs) n.setAttribute(k, opts.attrs[k]);
+  }
+  if(kids) kids.forEach(c=>{ if(c) n.appendChild(typeof c === "string" ? document.createTextNode(c) : c); });
+  return n;
+}
+function clear(n){ while(n.firstChild) n.removeChild(n.firstChild); }
+function svgNode(str){
+  const doc = new DOMParser().parseFromString(str, "image/svg+xml");
+  if(doc.getElementsByTagName("parsererror").length) return el("div",{cls:"lab",text:"frame unavailable"});
+  return document.importNode(doc.documentElement, true);
+}
+function esc(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+
+/* ---------------- synthetic photographs ----------------
+   Rendered, never real. The label on the carton carries the same string the
+   reader transcribes, so a visitor can check the machine against their own eyes.
+   Strings here are built only from the local catalog, then parsed as SVG.
+-------------------------------------------------------- */
+function svgSlip(order){
+  let rows = "";
+  order.lines.forEach((l,i)=>{
+    rows += '<text x="34" y="'+(104+i*20)+'" font-family="monospace" font-size="11" fill="#2b3038">'+esc(l.sku)+'</text>'
+         +  '<text x="250" y="'+(104+i*20)+'" font-family="monospace" font-size="11" fill="#2b3038">'+esc(String(l.qty))+'</text>';
+  });
+  return '<svg viewBox="0 0 320 240" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="packing slip">'
+    + '<rect width="320" height="240" fill="#0a0d11"/>'
+    + '<rect x="18" y="14" width="284" height="212" fill="#d9d4c8"/>'
+    + '<rect x="18" y="14" width="284" height="26" fill="#c3bcab"/>'
+    + '<text x="34" y="32" font-family="monospace" font-size="12" fill="#2b3038">PACKING SLIP  '+esc(order.id)+'</text>'
+    + '<text x="34" y="56" font-family="monospace" font-size="9" fill="#5c5748">ITEM</text>'
+    + '<text x="250" y="56" font-family="monospace" font-size="9" fill="#5c5748">QTY</text>'
+    + '<line x1="34" y1="62" x2="286" y2="62" stroke="#a8a091" stroke-width="1"/>'
+    + rows
+    + '<line x1="34" y1="196" x2="286" y2="196" stroke="#a8a091" stroke-width="1"/>'
+    + '<text x="34" y="212" font-family="monospace" font-size="8.5" fill="#7a7364">PHOTOGRAPHED FOR RECORD, NEVER COUNTED FROM</text>'
+    + '</svg>';
+}
+function svgGoods(items, blur){
+  const list=[];
+  items.forEach(it=>{ for(let i=0;i<it.visibleRaw;i++) list.push(it.sku_guess); });
+  const n = Math.max(list.length,1);
+  const cols = n>12 ? 5 : (n>6 ? 4 : (n>2 ? 3 : n));
+  const rows = Math.ceil(n/cols);
+  const bw = Math.max(38, Math.min(96, Math.floor(280/cols) - 8));
+  const bh = Math.max(30, Math.min(74, Math.floor(190/rows) - 8));
+  let body = '<rect width="320" height="240" fill="#0f1319"/><rect x="0" y="176" width="320" height="64" fill="#171c23"/>';
+  list.forEach((sku,i)=>{
+    const c=i%cols, r=Math.floor(i/cols);
+    const x = 22 + c*(bw+8), y = 20 + r*(bh+8);
+    const L = CATALOG[sku].label;
+    body += '<g'+(blur?' filter="url(#bl)"':'')+'>'
+         +  '<rect x="'+x+'" y="'+y+'" width="'+bw+'" height="'+bh+'" fill="#b9a98d"/>'
+         +  '<rect x="'+x+'" y="'+y+'" width="'+bw+'" height="'+bh+'" fill="none" stroke="#8d7f68"/>'
+         +  '<rect x="'+(x+5)+'" y="'+(y+6)+'" width="'+(bw-10)+'" height="'+(bh-12)+'" fill="#efe9dc"/>';
+    const fs = bw>70 ? 7 : (bw>50 ? 5.4 : 3.2);
+    L.forEach((t,k)=>{ if(t) body += '<text x="'+(x+9)+'" y="'+(y+16+k*(fs+2.6))+'" font-family="monospace" font-size="'+fs+'" fill="#22262d">'+esc(t)+'</text>'; });
+    body += '</g>';
+  });
+  const defs = blur ? '<defs><filter id="bl"><feGaussianBlur stdDeviation="2.6"/></filter></defs>' : '';
+  return '<svg viewBox="0 0 320 240" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="goods on the bench">'+defs+body+'</svg>';
+}
+
+/* ---------------- the reader, standing in for the vision model ----------------
+   Returns only what a camera could know. It has no access to order quantities.
+------------------------------------------------------------------------------- */
+function applySabotage(order){
+  let shipped = order.shipped.map(x=>Object.assign({},x));
+  if($("swSwap").checked){
+    shipped = shipped.map(x => x.sku==="NB-TRQ-014-ADJ" ? Object.assign({},x,{sku:"NB-TRQ-014-STD"}) : x);
+  }
+  if($("swShort").checked){
+    shipped = shipped.map(x => Object.assign({},x,{units:Math.max(0,x.units-1)}));
+  }
+  return shipped;
+}
+function read(order){
+  const shipped = applySabotage(order);
+  const blur = $("swBlur").checked;
+  return shipped.map(it=>{
+    const c = CATALOG[it.sku];
+    let visibleRaw = it.units, conf = (it.conf !== undefined) ? it.conf : null;
+    if(blur){ conf = 0; }
+    else if(it.crowded){ visibleRaw = Math.max(1, it.units - 6); conf = 0.21; }
+    return { sku_guess:it.sku,
+             labelText: blur ? "" : c.label.filter(Boolean).join(" "),
+             labelName: blur ? "" : c.labelName,
+             visibleRaw, unitWord:c.packWord, conf, blur, crowded:!!it.crowded };
+  });
+}
+
+/* ---------------- scoring ----------------
+   fuzzyName is precision only, on purpose. Tokens the label carries must appear
+   in the ordered name. Tokens the ordered name carries that the label lacks cost
+   nothing. That is exactly the defect the deterministic check exists to close.
+------------------------------------------------------------------------------ */
+function tok(s){ return String(s||"").toLowerCase().replace(/[^a-z0-9.]+/g," ").trim().split(/\s+/).filter(Boolean); }
+
+/* Printed labels abbreviate and catalog names do not, and an abbreviation is not a
+   prefix: "std" is not the first three letters of "standard". In the real system this
+   alias table is HUMAN AUTHORED by policy. The machine may suggest an alias and may
+   never create one, because a wrong alias silently welds two products together. */
+const ALIAS = Object.assign(Object.create(null), {
+  std:"standard", stnd:"standard", adj:"adjust", adjust:"adjust",
+  adjustable:"adjust", assy:"assembly", qty:"quantity"
+});
+/* Object.create(null) on purpose. A plain object literal would resolve a token like
+   "constructor" or "toString" to an inherited function, and the next string call on it
+   would throw. Lookup tables keyed by untrusted-ish text get a null prototype. */
+function norm(t){ return ALIAS[t] || t; }
+function fuzzyName(orderName, labelText){
+  const a = tok(orderName).map(norm), b = tok(labelText).map(norm);
+  if(!b.length) return 0;
+  let hit = 0;
+  b.forEach(t=>{ if(a.some(x => x===t || x.indexOf(t)===0 || t.indexOf(x)===0)) hit++; });
+  return Math.min(0.98, 0.62 + 0.36*(hit/b.length));
+}
+function variantOfSku(sku){
+  if(/-ADJ$/.test(sku)) return "adjust";
+  if(/-STD$/.test(sku)) return "standard";
+  return null;
+}
+/* Deliberately written without backslash word-boundary escapes. In the real system
+   two of those escapes had been mangled into literal control bytes, which made an
+   entire gate a silent no-op for years. This idiom cannot rot the same way. */
+function markingInLabel(t){ return /(^|[^a-z])(adj|adjust|adjustable|click)([^a-z]|$)/i.test(String(t||"")); }
+
+function score(order, reads){
+  const useDet = $("enDet").checked, useUnit = $("enUnit").checked;
+  const useGroup = $("enGroup").checked, failClosed = $("enFail").checked;
+  const rank = { PASS:0, REVIEW:1, HOLD:2 };
+  let worst = "PASS";
+  const bump = v => { if(rank[v] > rank[worst]) worst = v; };
+
+  const groups = new Map();
+  order.lines.forEach(l=>{
+    if(!groups.has(l.sku)) groups.set(l.sku,{ sku:l.sku, lines:[] });
+    groups.get(l.sku).lines.push(l);
+  });
+
+  const rows = [];
+  groups.forEach(g=>{
+    const cat = CATALOG[g.sku];
+    const sumQty = g.lines.reduce((a,l)=>a+l.qty,0);
+    const compareTo = useGroup ? sumQty : g.lines[0].qty;
+    const r = reads.find(x=>x.sku_guess===g.sku)
+           || reads.find(x=>fuzzyName(cat.name, x.labelName) > 0.62) || null;
+
+    const row = { sku:g.sku, name:cat.name, lineCount:g.lines.length, orderedQty:sumQty,
+                  compareTo, floor:cat.floor, flags:[], verdict:"PASS", read:r, conf:0 };
+
+    if(!r){
+      row.verdict = failClosed ? "HOLD" : "PASS";
+      row.flags.push({ k: failClosed?"stop":"warn", t: failClosed
+        ? "Nothing in frame matched this line. Fail closed, so this is a stop."
+        : "Nothing in frame matched this line and the error path returned a pass. This is the most expensive bug in this class of system." });
+      bump(row.verdict); rows.push(row); return;
+    }
+    if(r.blur){
+      row.conf = 0;
+      row.verdict = failClosed ? "HOLD" : "PASS";
+      row.flags.push({ k: failClosed?"stop":"warn", t: failClosed
+        ? "Label unreadable. No signal, so the read fails closed."
+        : "Label unreadable and the error path returned a pass." });
+      bump(row.verdict); rows.push(row); return;
+    }
+
+    const factor = cat.packUnits;
+    const normalized = useUnit ? (r.visibleRaw / factor) : r.visibleRaw;
+    row.visibleRaw = r.visibleRaw;
+    row.normalized = normalized;
+    row.unitNote = factor > 1
+      ? r.visibleRaw + " " + cat.packWord + "s in frame, " + normalized + " " + cat.saleWord + (normalized===1?"":"s") + " in order units"
+      : r.visibleRaw + " in frame";
+    row.conf = (r.conf !== null && r.conf !== undefined) ? r.conf : fuzzyName(cat.name, r.labelName);
+
+    if(cat.manualOnly){
+      row.verdict = "REVIEW";
+      row.flags.push({ k:"warn", t:"Manual confirm only category. The model is bypassed by design and a written human note is required before finalize." });
+      bump("REVIEW"); rows.push(row); return;
+    }
+
+    if(normalized !== compareTo){
+      row.verdict = "HOLD";
+      if(!useUnit && factor > 1){
+        row.flags.push({ k:"stop", t:"Count mismatch: read "+r.visibleRaw+", order says "+compareTo+". The camera counted raw units and the line is in sale units. A perfect read scores as a mismatch on every case-packed line until the count is normalized." });
+      } else if(!useGroup && g.lines.length > 1){
+        row.flags.push({ k:"stop", t:"Count mismatch: read "+normalized+", compared against one line of "+compareTo+". The order was merged, so this SKU sits on "+g.lines.length+" lines and the key is not unique. Measured on real traffic: 4 orders in 569 carry a duplicate key and none had ever passed." });
+      } else {
+        row.flags.push({ k:"stop", t:"Count mismatch: "+normalized+" present, "+compareTo+" ordered." });
+      }
+      bump("HOLD");
+    } else if(g.lines.length > 1 && useGroup){
+      row.flags.push({ k:"ok", t:"Merged order. This SKU sits on "+g.lines.length+" lines and the group total equals the sum of the lines, so it clears. Shorts and over-ships keep the strict per-line path." });
+    }
+
+    const want = variantOfSku(g.sku);
+    if(want){
+      const marked = markingInLabel(r.labelText);
+      if(!r.labelText){
+        row.flags.push({ k:"warn", t:"Variant check had no label text to read. Empty label means no signal, so it does not fire." });
+      } else if(useDet){
+        if(want==="adjust" && !marked){
+          row.verdict = "HOLD";
+          row.flags.push({ k:"stop", t:"Variant check: the order line is the adjust variant and the transcribed label carries no adjustment marking. Name match scored "+row.conf.toFixed(2)+" because the standard name is a strict substring of the adjust name, and a fuzzy match has no penalty for an absent qualifier. Read off the SKU, not off the summary." });
+          bump("HOLD");
+        } else if(want==="standard" && marked){
+          row.verdict = "HOLD";
+          row.flags.push({ k:"stop", t:"Variant check: the order line is the standard variant and the label carries an adjustment marking." });
+          bump("HOLD");
+        } else {
+          row.flags.push({ k:"ok", t:"Variant check: SKU variant and transcribed marking agree." });
+        }
+      } else if(want==="adjust" && !marked){
+        row.flags.push({ k:"warn", t:"Deterministic check is off. Name match alone scores "+row.conf.toFixed(2)+" and passes, and the model's own sentence reads \"product type matches\" while quietly dropping the qualifier. This is the real failure, reproduced." });
+      }
+    }
+
+    if(cat.floor !== null && row.verdict === "PASS"){
+      if(row.conf < cat.floor){
+        row.verdict = "REVIEW";
+        row.flags.push({ k:"warn", t:"Confidence "+row.conf.toFixed(2)+" is below the "+cat.floor.toFixed(2)+" floor for this category. Retake, or override with a written reason." });
+        bump("REVIEW");
+      } else if(Math.abs(row.conf - cat.floor) < 0.005){
+        row.flags.push({ k:"warn", t:"Confidence landed exactly at the floor. That is 23 percent of real traffic, and it is only meaningful when the product has a look-alike sibling, which is what the watcher was built to notice." });
+      }
+    }
+    if(r.crowded){
+      row.flags.push({ k:"warn", t:"Too many small parts in too few frames. This is the honest cost of a stop: the goods are probably fine and the operator has to shoot it again." });
+    }
+    rows.push(row);
+  });
+
+  rows.forEach(r=>bump(r.verdict));
+  return { rows:rows, verdict:worst };
+}
+
+/* ---------------- render ---------------- */
+function renderFrames(){
+  const wrap = $("frames"); clear(wrap);
+  FRAME_PLAN.forEach((f,i)=>{
+    const isShot = i < S.shotCount;
+    const d = el("div",{cls:"frame " + (isShot ? (i === S.justShot ? "shot" : "") : "empty")});
+    if(i < S.shotCount){
+      if(f.type === "slip") d.appendChild(svgNode(svgSlip(S.order)));
+      else d.appendChild(svgNode(svgGoods(read(S.order), $("swBlur").checked)));
+      d.appendChild(el("span",{cls:"cap",text:f.cap}));
+    } else {
+      d.textContent = "NOT SHOT";
+    }
+    wrap.appendChild(d);
+  });
+  $("capstate").textContent = S.shotCount + " of " + FRAME_PLAN.length + " frames";
+  $("shoot").disabled = S.shotCount >= FRAME_PLAN.length || !S.who || S.running || S.finalized;
+  $("verify").disabled = S.shotCount < FRAME_PLAN.length || !S.who || S.running || S.finalized;
+}
+
+function seamItem(title, sub, mute){
+  const d = el("div",{cls:"seam-item" + (mute?" mute":"")});
+  if(title) d.appendChild(el("b",{text:title}));
+  if(sub) d.appendChild(document.createTextNode(sub));
+  return d;
+}
+function renderSeam(reads){
+  const m = $("seamModel"), c = $("seamCode");
+  clear(m); clear(c);
+  if(!reads){
+    m.appendChild(seamItem(null,"Nothing yet. It gets photographs, never the expected quantity or slip number."));
+  } else {
+    reads.forEach(r=>{
+      m.appendChild(seamItem(r.labelText || "no legible text",
+        r.visibleRaw + " " + r.unitWord + (r.visibleRaw===1?"":"s") + " visible"));
+    });
+    m.appendChild(seamItem(null,"no expected quantity was sent",true));
+  }
+  S.order.lines.forEach(l=>{
+    c.appendChild(seamItem(l.sku, CATALOG[l.sku].name + ", qty " + l.qty));
+  });
+  c.appendChild(seamItem(null,"from the order system, never the slip",true));
+}
+
+function renderLines(res){
+  const box = $("lines"); clear(box);
+  if(!res){
+    box.appendChild(el("div",{cls:"lineitem",style:"color:var(--dimmer);font-size:12px",text:"Awaiting capture."}));
+    return;
+  }
+  res.rows.forEach(r=>{
+    const item = el("div",{cls:"lineitem"});
+
+    const top = el("div",{cls:"li-top"});
+    const left = el("span");
+    left.appendChild(el("span",{cls:"li-sku",text:r.sku}));
+    left.appendChild(el("span",{cls:"li-name",text:" " + r.name + (r.lineCount>1 ? "  [" + r.lineCount + " lines]" : "")}));
+    top.appendChild(left);
+    const right = el("span",{cls:"lab"});
+    right.appendChild(document.createTextNode("ordered "));
+    right.appendChild(el("b",{cls:"num",style:"color:var(--text)",text:String(r.orderedQty)}));
+    top.appendChild(right);
+    item.appendChild(top);
+
+    if(r.read){
+      const rd = el("div",{cls:"li-read"});
+      rd.appendChild(document.createTextNode("read "));
+      rd.appendChild(el("code",{text:r.read.labelText || "no legible text"}));
+      if(r.unitNote) rd.appendChild(document.createTextNode(" · " + r.unitNote));
+      item.appendChild(rd);
+    }
+
+    if(r.floor !== null && r.floor !== undefined){
+      const meter = el("div",{cls:"meter"});
+      const fill = el("div",{cls:"fill"});
+      fill.dataset.w = ((r.conf||0)*100).toFixed(1) + "%";
+      meter.appendChild(fill);
+      meter.appendChild(el("div",{cls:"floor",style:"left:" + (r.floor*100) + "%"}));
+      /* at a high floor the centered label would overflow the panel edge */
+      const fp = r.floor * 100;
+      const lab = fp > 78 ? "right:0;transform:none" : ("left:" + fp + "%");
+      meter.appendChild(el("div",{cls:"floorlab",style:lab,text:"floor " + r.floor.toFixed(2)}));
+      meter.appendChild(el("div",{cls:"val num",text:(r.conf||0).toFixed(2)}));
+      item.appendChild(meter);
+    }
+
+    const flags = el("div",{cls:"flagrow"});
+    r.flags.forEach(f=>flags.appendChild(el("div",{cls:"flag " + f.k, text:f.t})));
+    item.appendChild(flags);
+
+    box.appendChild(item);
+  });
+  requestAnimationFrame(()=>{
+    box.querySelectorAll(".fill").forEach(f=>{ f.style.width = f.dataset.w; });
+  });
+}
+
+function setVerdict(v, note){
+  const st = $("vstamp");
+  st.dataset.v = (v==="PASS"||v==="REVIEW"||v==="HOLD") ? v : "RUNNING";
+  st.textContent = v;
+  $("vnote").textContent = note || "";
+  const done = (v==="PASS"||v==="REVIEW"||v==="HOLD");
+  $("aRetake").disabled = !done;
+  $("aOverride").disabled = !done || v==="PASS";
+  $("aReject").disabled = !done;
+  $("aFinalize").disabled = (v !== "PASS");
+}
+
+function renderCompare(){
+  const wrap = $("cmpWrap");
+  const relevant = S.order.id === "NB-20115" && $("swSwap").checked;
+  wrap.style.display = relevant ? "block" : "none";
+  if(!relevant) return;
+  const reads = read(S.order);
+  const conf = fuzzyName(CATALOG["NB-TRQ-014-ADJ"].name, reads[0].labelName);
+  const a = $("cmpA"), b = $("cmpB");
+  clear(a); clear(b);
+
+  const rd = el("div",{cls:"li-read",style:"margin:0 0 6px"});
+  rd.appendChild(document.createTextNode("read "));
+  rd.appendChild(el("code",{text:reads[0].labelText || "no legible text"}));
+  a.appendChild(rd);
+  a.appendChild(el("div",{cls:"flag warn",text:'Model summary: "product type matches". The qualifier is dropped.'}));
+  a.appendChild(el("div",{cls:"flag",style:"margin-top:6px",text:"Name match " + conf.toFixed(2) + ", above the 0.95 floor."}));
+  a.appendChild(el("div",{cls:"flag ok",style:"margin-top:6px",text:"Verdict PASS. The wrong part ships."}));
+
+  const rd2 = el("div",{cls:"li-read",style:"margin:0 0 6px"});
+  rd2.appendChild(document.createTextNode("variant from SKU "));
+  rd2.appendChild(el("code",{text:"NB-TRQ-014-ADJ"}));
+  rd2.appendChild(document.createTextNode(" = adjust"));
+  b.appendChild(rd2);
+  b.appendChild(el("div",{cls:"flag",text:"Transcribed label carries no adjustment marking."}));
+  b.appendChild(el("div",{cls:"flag stop",style:"margin-top:6px",text:"Verdict HOLD. This is a gate: it can only add a stop."}));
+  b.appendChild(el("div",{cls:"flag",style:"margin-top:6px;color:var(--dim)",text:"Currently " + ($("enDet").checked ? "ON" : "OFF") + " in the engine switches above."}));
+}
+
+function switchNote(){
+  const off = [];
+  if(!$("enDet").checked) off.push("the deterministic variant check");
+  if(!$("enUnit").checked) off.push("unit normalization");
+  if(!$("enGroup").checked) off.push("the group-total rule");
+  if(!$("enFail").checked) off.push("fail-closed error handling");
+  $("switchNote").textContent = off.length
+    ? "Running without " + off.join(", ") + ". Every one of these was a real production defect before it was a switch. Re-run the verification to see what changes."
+    : "Engine at current production configuration. Turn something off and re-run to reproduce a defect that actually shipped.";
+}
+
+/* ---------------- flow ---------------- */
+function lockOrderSwitches(on){
+  ["swSwap","swShort","swBlur","enDet","enUnit","enGroup","enFail"].forEach(id=>{ $(id).disabled = on; });
+}
+function resetRun(){
+  S.runId++;                        /* invalidates any run still in flight */
+  S.finalized = false; lockOrderSwitches(false);
+  S.shotCount = 0; S.result = null; S.running = false; S.justShot = -1;
+  $("notebox").classList.remove("on");
+  $("noteta").value = "";
+  $("record").style.display = "none";
+  clear($("record"));
+  $("latency").textContent = "";
+  renderFrames(); renderSeam(null); renderLines(null);
+  setVerdict("READY", S.who ? "Capture the frames, then run the verification." : "Sign in to begin.");
+  renderCompare(); switchNote();
+}
+function invalidate(msg){
+  if(!S.result || S.finalized) return;
+  S.result = null; renderLines(null); setVerdict("READY", msg);
+}
+function shoot(){
+  if(S.shotCount >= FRAME_PLAN.length || S.running) return;
+  S.justShot = S.shotCount;
+  S.shotCount++; renderFrames();
+}
+function runVerify(){
+  if(S.running || S.finalized) return;
+  S.running = true;
+  const myRun = ++S.runId;          /* a reset or scenario change invalidates this run */
+  const live = () => myRun === S.runId;
+  $("verify").disabled = true; $("shoot").disabled = true;
+  setVerdict("RUNNING","Reading frames.");
+  const reads = read(S.order);
+  setTimeout(()=>{ if(!live()) return; renderSeam(reads); setVerdict("RUNNING","Transcribing labels."); }, 700);
+  setTimeout(()=>{ if(!live()) return; setVerdict("RUNNING","Comparing to the order lines."); }, 1600);
+  setTimeout(()=>{
+    if(!live()) return;
+    const res = score(S.order, reads);
+    S.result = res;
+    renderLines(res);
+    const notes = {
+      PASS:"Every line matched. Photographs archived against the order.",
+      REVIEW:"Something needs a human. The floor was not cleared, or the category requires a written note.",
+      HOLD:"Stopped. Retake, override with a written reason, or reject. There is no plain ship button, by design."
+    };
+    setVerdict(res.verdict, notes[res.verdict]);
+    $("latency").textContent = "compressed for the demo";
+    S.running = false;
+    renderFrames();
+    renderCompare();
+  }, 2700);
+}
+function finalize(overrideNote){
+  const r = S.result; if(!r) return;
+  const d = new Date();
+  const hh = String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0")+":"+String(d.getSeconds()).padStart(2,"0");
+  const box = $("record"); clear(box);
+  box.style.display = "block";
+  box.appendChild(el("div",{cls:"lab",style:"margin-bottom:9px",text:"Record written"}));
+  const ul = el("ul",{cls:"trail"});
+  const li1 = el("li");
+  li1.appendChild(el("b",{text:S.order.id}));
+  li1.appendChild(document.createTextNode(" verified by "));
+  li1.appendChild(el("b",{text:S.who}));
+  li1.appendChild(document.createTextNode(" at " + hh + " ET"));
+  ul.appendChild(li1);
+  const li2 = el("li");
+  li2.appendChild(document.createTextNode("Verdict "));
+  li2.appendChild(el("b",{text:r.verdict}));
+  if(overrideNote) li2.appendChild(document.createTextNode(", overridden and shipped"));
+  ul.appendChild(li2);
+  if(overrideNote){
+    const li3 = el("li");
+    li3.appendChild(document.createTextNode("Reason recorded: "));
+    li3.appendChild(el("b",{text:overrideNote}));
+    ul.appendChild(li3);
+  }
+  ul.appendChild(el("li",{text:FRAME_PLAN.length + " photographs archived against the order as the dispute record"}));
+  ul.appendChild(el("li",{cls:"mute",text:"In production this row is what the watcher sweeps five minutes later, looking for anything flagged and then passed anyway."}));
+  box.appendChild(ul);
+  S.finalized = true;
+  $("aFinalize").disabled = true; $("aOverride").disabled = true; $("aReject").disabled = true; $("aRetake").disabled = true;
+  $("notebox").classList.remove("on");
+  lockOrderSwitches(true);
+  renderFrames();
+  $("vnote").textContent = "Record written and this order is closed. Reset, or choose another order, to start a new verification.";
+}
+
+/* ---------------- November lab ----------------
+   Pure functions, so each switch has a scenario test. Answers are recorded
+   fixtures. Nothing here calls a model and nothing is random.
+------------------------------------------------- */
+const DENIAL_WORDS = /NOT LEGIBLE|ILLEGIBLE|UNREADABLE|ASSUMED|LIKELY|CONSISTENT WITH/;
+const BORROW_WORDS = /SLIP|PACKING|EXPECTED/;
+function lotOf(sku){ const m = /L[0-9]{2}-[0-9]{4}-[A-Z]$/.exec(sku); return m ? m[0] : ""; }
+function lotTokens(s){ return String(s).split(/[^A-Z0-9]+/).filter(Boolean); }
+function lotProved(sku, field){
+  const raw = String(field||"").toUpperCase().trim();
+  if(!raw || DENIAL_WORDS.test(raw)) return false;
+  /* "L26-0417-A (matches expected)" is a real read with a comment after it */
+  const bare = raw.replace(/\([^)]*\)/g," ").trim() || raw;
+  if(BORROW_WORDS.test(bare)) return false;
+  const have = lotTokens(bare);
+  return lotTokens(lotOf(sku)).every(x=>have.includes(x));
+}
+function labBlankLot(gateOn){
+  const sku = "NB-ABR-050-STD-L26-0417-A";
+  const answer = { status:"found_correct", confidence:0.95, lot_as_read:"", notes:"Slip confirms the lot." };
+  if(gateOn && !lotProved(sku, answer.lot_as_read)){
+    return { answer, verdict:"REVIEW", by:"code", text:"No lot was read off the box. Retake, or override with a note." };
+  }
+  return { answer, verdict:"PASS", by:"model", text:"The model's 0.95 stands and the order ships with no lot read." };
+}
+function newSession(){ return { runs:[], photos:["slip","goods-1"], added:0 }; }
+function fingerprintOf(photos){ return photos.slice().sort().join("|"); }
+/* recorded behavior: the first look stops, later looks at any photos answer PASS */
+function recordedVerdict(attempt){ return attempt === 1 ? "REVIEW" : "PASS"; }
+function carrySubmit(session, guardOn){
+  const n = session.runs.length + 1, fp = fingerprintOf(session.photos);
+  const raw = recordedVerdict(n);
+  const prior = (guardOn && raw === "PASS")
+    ? session.runs.find(r=>r.realStop && r.fp === fp) : null;
+  const verdict = prior ? "REVIEW" : raw;
+  session.runs.push({ n, fp, raw, verdict, realStop: raw !== "PASS" });
+  return { attempt:n, raw, verdict, by: prior ? "code" : "model", fromAttempt: prior ? prior.n : null };
+}
+function carryAddPhoto(session){ session.added++; session.photos.push("goods-new-" + session.added); }
+/* bench: queued picture ahead of the live frame, by seconds of idle */
+const GHOST_AGE = { 5:4.4, 30:7.7, 90:7.7 };
+function ghostCapture(fresh, idle, frameArrives){
+  if(fresh){
+    if(frameArrives === false) return { kind:"none", text:"Camera not available. No frame arrived within 2 s, so no photo is saved.", by:"code" };
+    return { kind:"fresh", age:0.06, text:"Photo taken 0.06 s after the press. It shows the table as it is now.", by:"code", bench:"300 of 300 frames read" };
+  }
+  return { kind:"stale", age:GHOST_AGE[idle], text:"Photo is " + GHOST_AGE[idle] + " s older than the press. It shows the table before the goods moved.", by:"code", bench:"68 of 300 frames read, on the network-camera station only. The other station's camera path did not queue." };
+}
+function labTwoLots(worksheetOn){
+  const counts = worksheetOn ? [5,5] : [4,6];
+  const stop = counts[0] !== 5 || counts[1] !== 5;
+  return { counts, verdict: stop ? "HOLD" : "PASS", by:"code",
+           text: stop ? "Counts of 4 and 6 don't match 5 and 5, on correct goods. This is a false stop." : "Counts of 5 and 5 match the order lines." };
+}
+const LOOKALIKE = { "8":"B", "0":"OQ", "1":"IL", "5":"S", "2":"Z", "6":"G", "O":"Q", "Q":"O" };
+function foldPrefix(read, expected){
+  const m = /^[A-Z]+/.exec(expected);
+  if(!m || read.length < m[0].length) return read;
+  let out = "";
+  for(let i=0;i<m[0].length;i++){
+    const c = read[i], e = expected[i];
+    out += (c === e || (LOOKALIKE[c]||"").includes(e)) ? e : c;
+  }
+  return out + read.slice(m[0].length);
+}
+const SLIP_CASES = [
+  { id:"CASE-SLIPDIGIT",  read:"N8-20114", expected:"NB-20114", label:"N8-20114, prefix misread" },
+  { id:"CASE-SLIPLETTER", read:"OX-20114", expected:"QX-20114", label:"OX-20114, prefix misread" },
+  { id:"CASE-WRONGSLIP",  read:"N8-20115", expected:"NB-20114", label:"N8-20115, another order" }
+];
+function slipCheck(read, expected, foldOn){
+  const seen = foldOn ? foldPrefix(read, expected) : read;
+  const ok = seen === expected || seen.includes(expected) || expected.includes(seen);
+  return { seen, read, verdict: ok ? "PASS" : "HOLD", by:"code" };
+}
+/* recorded answer bodies, in the order the Next button walks them */
+const STRICT_ANSWER = '{"lines":[{"counted_qty":2,"status":"found_correct","confidence":0.94}]}';
+const FORMAT_SAMPLES = [
+  { kind:"clean",   text:STRICT_ANSWER },
+  { kind:"prose",   text:'Here is what I found: ' + STRICT_ANSWER + ' Let me know if you need more.' },
+  { kind:"cut off", text:'{"lines":[{"counted_qty":2,"status":"found_' }
+];
+function parseAnswer(text){
+  try { return { path:"strict", body:JSON.parse(text) }; } catch(e){ /* try recovery below */ }
+  const a = text.indexOf("{"), b = text.lastIndexOf("}");
+  if(a >= 0 && b > a){
+    try { return { path:"recovered", body:JSON.parse(text.slice(a,b+1)) }; } catch(e){ /* unparsable */ }
+  }
+  return { path:"none", body:null };
+}
+function labFormat(schemaOn, i){
+  const sample = schemaOn ? FORMAT_SAMPLES[0] : FORMAT_SAMPLES[i % FORMAT_SAMPLES.length];
+  const parsed = parseAnswer(sample.text);
+  const verdict = parsed.path === "strict" ? "PASS" : (parsed.path === "recovered" ? "REVIEW" : "HOLD");
+  const text = { strict:"Strict JSON. The verdict engine reads it directly.",
+                 recovered:"Prose around the JSON. Recovered and flagged, so a person looks.",
+                 none:"Cut off with no recovery. Stopped, with no guessing." }[parsed.path];
+  return { kind:sample.kind, raw:sample.text, path:parsed.path, verdict, text, by:"code" };
+}
+
+/* ---------------- release harness, recorded results ---------------- */
+const CANDIDATES = {
+  "2b": { label:"Prompt 2b, structured output", pairs:96, cost:"$28.85", movedVerdicts:false,
+    gates:[
+      { name:"Format fixed", want:"every candidate answer strict JSON, with a confidence number on every line", got:"96 of 96", pass:true },
+      { name:"No API stops", want:"0 refusals, 0 cut-offs, 0 HTTP failures", got:"0", pass:true },
+      { name:"Stops stay stopped", want:"candidate passes no more must-stop samples than control", got:"4 and 4 passes of 14 samples", pass:true },
+      { name:"Lot fault no worse", want:"no more fault samples than control", got:"control 14, candidate 13", pass:true },
+      { name:"Good orders pass", want:"at least control less 1, leaving out answers control could not parse", got:"34 and 34 of 36", pass:true },
+      { name:"Two-lot order", want:"candidate holds at most 1 of 10", got:"control 1, candidate 0", pass:true },
+      { name:"Counts do not move", want:"no more lines than control's own drift, plus 1", got:"drift 0, so limit 1. Candidate moved 2 in each sample", pass:false },
+      { name:"Time", want:"slowest candidate call under 60 s", got:"slowest pair 34.5 s", pass:true }
+    ],
+    detail:"The 2 moved lines: ten loose sleeves went from a count of 10 to 1, the right answer since ten sleeves are one carton. A wrong-lot line moved too, and it stays not found in every answer. Both orders hold on all four answers, so no verdict moved. Control: 0 answers not strict. On Stops stay stopped: of the 7 must-stop cases, 3 held on every answer, 2 moved only between HOLD and REVIEW, and 2 older cases passed on every answer. Those 2 are the 4 passes on each arm. The gate protects against getting worse, and those older cases already pass on the live prompt." },
+  "v2.58": { label:"Prompt v2.58, lot wording", pairs:76, cost:"about $21", movedVerdicts:true,
+    gates:[
+      { name:"Rig valid", want:"all pairs return both arms, markers prove which prompt ran, no more unparsable answers than control", got:"76 pairs, unparsable 3 and 2", pass:true },
+      { name:"Control shows the fault", want:"at least once", got:"14 samples", pass:true },
+      { name:"Target fault gone", want:"0 candidate samples", got:"0", pass:true },
+      { name:"No copying", want:"candidate gives a read no more often than control on unread targets", got:"11 and 12", pass:false },
+      { name:"Clean lot field", want:"0 comments in the field", got:"0", pass:true },
+      { name:"Stops stay stopped", want:"no more passes than control", got:"4 and 4", pass:true },
+      { name:"Counts do not move", want:"no more than control's drift plus 1", got:"drift 2, candidate 1", pass:true },
+      { name:"Stacked orders pass", want:"at least control less 1 of 16, and two named key cases each pass once", got:"15 and 12, one key case never passed", pass:false },
+      { name:"No collateral stops", want:"at least control less 1", got:"4 and 6", pass:true },
+      { name:"Rerun of the two-lot order", want:"rule written before it: holds at most control plus 1", got:"1 of 8 and 8 of 8", pass:false, rerun:true }
+    ],
+    detail:"The separate rerun rule failed too. Across the sweep and the rerun combined, the two-lot order held 10 of 10, control 1, which is the first 2 samples plus the 8 rerun samples. No copying is recorded as probably a badly written gate, and the verdict stood. Note, not a gate: a blank lot scored 0.95 in 4 of 4 on control, and 0.82 to 0.90 in 4 of 4 on the candidate. It fixed what it was written to fix and stopped good orders doing it. The model reaches the right count in its notes, then changes the number. The likely cause is that the new text ties a pass to reading a lot on a carton. That cause is not proven." }
+};
+function harnessVerdict(key){
+  const c = CANDIDATES[key], gates = c.gates.filter(g=>!g.rerun), failed = gates.filter(g=>!g.pass);
+  if(!failed.length) return { status:"deploy", failed:0, total:gates.length };
+  if(c.movedVerdicts) return { status:"rejected", failed:failed.length, total:gates.length };
+  return { status:"ruling", failed:failed.length, total:gates.length };
+}
+function editGate(){ return { allowed:false, text:"Refused. Gates do not change after the run. A badly written gate gets recorded, and the verdict stands." }; }
+function humanRuling(key, ship){
+  if(harnessVerdict(key).status !== "ruling") return { recorded:false, text:"No ruling is open on this candidate." };
+  return { recorded:true, ship, text: ship
+    ? "Ruled by a person with the failed gate on the table. The gate stays reported as failed. Candidate ships."
+    : "Ruled by a person. The candidate stays out and the serving prompt keeps running." };
+}
+const AA_RUN = { pairs:8, identical:8, cost:"$3.47", a:{PASS:7,HOLD:0,REVIEW:1}, b:{PASS:7,HOLD:1,REVIEW:0} };
+function aaVerdict(run){
+  const spread = ["PASS","HOLD","REVIEW"].map(k=>Math.abs(run.a[k]-run.b[k]));
+  const fair = run.identical === run.pairs && Math.max.apply(null,spread) <= 1;
+  return { fair, text: fair
+    ? "Requests matched byte for byte on " + run.identical + " of " + run.pairs + ", and the arms came out about even. The rig is fair, so both rejections stand."
+    : "The arms differ. Fix the rig before trusting any comparison." };
+}
+
+/* ---------------- lab render ---------------- */
+function kindOf(v){ return (v==="PASS"||v==="fresh") ? "ok" : (v==="REVIEW"||v==="none") ? "warn" : "stop"; }
+function outcome(box, stamp, kind, rows){
+  clear(box);
+  box.appendChild(el("span",{cls:"mini",text:stamp,attrs:{"data-v":kind}}));
+  rows.forEach(r=>{
+    const d = el("div",{cls:"labrow "+r[0],style:"margin-top:6px"});
+    d.appendChild(el("b",{text:r[1]+" "}));
+    d.appendChild(document.createTextNode(r[2]));
+    box.appendChild(d);
+  });
+}
+function renderLot(){
+  const r = labBlankLot($("labLotGate").checked);
+  outcome($("outLot"), r.verdict, kindOf(r.verdict), [
+    ["m","Model said","PASS at 0.95, lot field empty, \"Slip confirms the lot.\""],
+    ["c", r.by==="code" ? "Code decided" : "Code stayed out", r.text]
+  ]);
+}
+const LAB = { session:newSession(), formatI:0 };
+function renderCarry(res){
+  if(!res){ clear($("outCarry")); $("outCarry").appendChild(el("div",{cls:"labrow",text:"Press Submit same photos to start. The first look stops."})); return; }
+  const rows = [["m","Raw answer, attempt "+res.attempt+":",res.raw]];
+  if(res.fromAttempt) rows.push(["c","Code decided","Same photos as attempt "+res.fromAttempt+", which stopped. Take a new photo, or override with a note."]);
+  else rows.push(["c","Code decided", res.raw==="PASS" ? "No stop on these exact photos, so the answer stands." : "This is a real stop."]);
+  outcome($("outCarry"), res.verdict, kindOf(res.verdict), rows);
+}
+function renderGhost(){
+  const idle = Number($("labIdle").value) || 30;
+  const r = ghostCapture($("labFresh").checked, idle);
+  outcome($("outGhost"), r.kind==="fresh" ? "FRESH" : "STALE", kindOf(r.kind), [
+    ["c","Code decided", r.text],
+    ["c","Bench:", r.bench]
+  ]);
+}
+function renderTwo(){
+  const r = labTwoLots($("labWorksheet").checked);
+  outcome($("outTwo"), r.verdict, kindOf(r.verdict), [
+    ["m","Model counted", r.counts[0]+" and "+r.counts[1]],
+    ["c","Code decided", r.text],
+    ["c","Recorded:", "8 holds in 10 on stage 1, 0 in 10 on the stage 2 pilot. Three changes went in together, so none can be credited alone."]
+  ]);
+}
+function renderSlip(){
+  const c = SLIP_CASES.find(x=>x.id===$("labSlip").value) || SLIP_CASES[0];
+  const r = slipCheck(c.read, c.expected, $("labFold").checked);
+  outcome($("outSlip"), r.verdict, kindOf(r.verdict), [
+    ["m","Model read", c.read],
+    ["c","Code compared", r.seen+" with "+c.expected+" from the order system"]
+  ]);
+}
+function renderFormat(){
+  const r = labFormat($("labSchema").checked, LAB.formatI);
+  outcome($("outFormat"), r.verdict, kindOf(r.verdict), [
+    ["m","Model returned", r.raw],
+    ["c","Code decided", r.text]
+  ]);
+}
+function renderHarness(reveal){
+  const key = $("hCand").value || "2b", c = CANDIDATES[key];
+  const body = $("hBody"); clear(body);
+  clear($("hOut")); clear($("hRuled"));
+  $("hRuling").style.display = "none";
+  $("hEdit").disabled = true;
+  c.gates.forEach(g=>{
+    const tr = el("tr");
+    tr.appendChild(el("td",{text:g.name}));
+    tr.appendChild(el("td",{text:g.want}));
+    tr.appendChild(el("td",{text:reveal ? g.got : "not run"}));
+    tr.appendChild(el("td",{cls:reveal ? (g.pass?"good":"bad") : "",text:reveal ? (g.pass?"pass":"FAIL") : "written"}));
+    body.appendChild(tr);
+  });
+  if(!reveal) return;
+  const v = harnessVerdict(key);
+  const stamp = v.status==="rejected" ? "REJECTED" : v.status==="ruling" ? "RULING NEEDED" : "DEPLOY";
+  outcome($("hOut"), stamp, v.status==="rejected" ? "stop" : "warn", [
+    ["c",(v.total-v.failed)+" of "+v.total+" gates passed.", c.pairs+" pairs, "+c.cost+". "+c.detail]
+  ]);
+  $("hEdit").disabled = false;
+  if(v.status==="ruling") $("hRuling").style.display = "flex";
+}
+
+/* ---------------- wiring ---------------- */
+(function buildScenarioSelect(){
+  const sel = $("scenario");
+  ORDERS.forEach(o=>{
+    const opt = document.createElement("option");
+    opt.value = o.id; opt.textContent = o.id + " · " + o.blurb;
+    sel.appendChild(opt);
+  });
+  sel.addEventListener("change", ()=>{
+    S.order = ORDERS.find(o=>o.id === sel.value);
+    $("orderno").textContent = S.order.id;
+    $("scenblurb").textContent = S.order.blurb;
+    resetRun();
+  });
+})();
+
+function tickClock(){
+  const d = new Date();
+  $("clock").textContent = String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0")+":"+String(d.getSeconds()).padStart(2,"0");
+}
+
+document.querySelectorAll("[data-who]").forEach(b=>{
+  b.addEventListener("click", ()=>{
+    S.who = b.dataset.who;
+    $("whoami").textContent = S.who;
+    $("signin").classList.add("off");
+    resetRun();
+  });
+});
+$("shoot").addEventListener("click", shoot);
+$("verify").addEventListener("click", runVerify);
+$("reset").addEventListener("click", resetRun);
+$("aRetake").addEventListener("click", ()=>{
+  S.shotCount = 1; S.result = null;
+  renderFrames(); renderLines(null);
+  setVerdict("READY","Frames cleared. Shoot the goods again.");
+});
+$("aReject").addEventListener("click", ()=>{
+  setVerdict("HOLD","Rejected. The order goes back to the bench and nothing ships.");
+  $("aFinalize").disabled = true;
+  $("aOverride").disabled = true;      /* terminal: no reject-then-override-to-ship path */
+  $("aReject").disabled = true;
+  $("notebox").classList.remove("on");
+});
+$("aOverride").addEventListener("click", ()=>{ $("notebox").classList.add("on"); $("noteta").focus(); });
+$("noteSubmit").addEventListener("click", ()=>{
+  const v = $("noteta").value.trim();
+  if(!v){ $("noteta").style.borderColor = "var(--stop)"; $("noteta").focus(); return; }
+  $("noteta").style.borderColor = "";
+  finalize(v);
+});
+$("aFinalize").addEventListener("click", ()=>finalize(null));
+
+["swSwap","swShort","swBlur"].forEach(id=>$(id).addEventListener("change", ()=>{
+  renderFrames(); renderCompare(); invalidate("Physical contents changed. Re-run the verification.");
+}));
+["enDet","enUnit","enGroup","enFail"].forEach(id=>$(id).addEventListener("change", ()=>{
+  switchNote(); renderCompare(); invalidate("Engine configuration changed. Re-run the verification.");
+}));
+
+function fillSelect(id, items){
+  items.forEach(it=>{
+    const o = document.createElement("option");
+    o.value = it[0]; o.textContent = it[1];
+    $(id).appendChild(o);
+  });
+}
+fillSelect("labIdle", [["30","idle 30 s"],["5","idle 5 s"],["90","idle 90 s"]]);
+fillSelect("labSlip", SLIP_CASES.map(c=>[c.id,c.label]));
+fillSelect("hCand", Object.keys(CANDIDATES).map(k=>[k,CANDIDATES[k].label]));
+$("labLotGate").addEventListener("change", renderLot);
+$("labFresh").addEventListener("change", renderGhost);
+$("labIdle").addEventListener("change", renderGhost);
+$("labWorksheet").addEventListener("change", renderTwo);
+$("labFold").addEventListener("change", renderSlip);
+$("labSlip").addEventListener("change", renderSlip);
+$("labSchema").addEventListener("change", renderFormat);
+$("labNext").addEventListener("click", ()=>{ LAB.formatI++; renderFormat(); });
+$("labSame").addEventListener("click", ()=>renderCarry(carrySubmit(LAB.session, $("labCarry").checked)));
+$("labNew").addEventListener("click", ()=>{ carryAddPhoto(LAB.session); renderCarry(carrySubmit(LAB.session, $("labCarry").checked)); });
+$("labRestart").addEventListener("click", ()=>{ LAB.session = newSession(); renderCarry(null); });
+$("labCarry").addEventListener("change", ()=>{ LAB.session = newSession(); renderCarry(null); });
+$("hCand").addEventListener("change", ()=>renderHarness(false));
+$("hRun").addEventListener("click", ()=>renderHarness(true));
+$("hEdit").addEventListener("click", ()=>{
+  clear($("hRuled"));
+  $("hRuled").appendChild(el("div",{cls:"flag stop",text:editGate().text}));
+});
+function rule(ship){
+  clear($("hRuled"));
+  $("hRuled").appendChild(el("div",{cls:ship?"flag ok":"flag",text:humanRuling($("hCand").value||"2b", ship).text}));
+}
+$("hShip").addEventListener("click", ()=>rule(true));
+$("hHold").addEventListener("click", ()=>rule(false));
+$("aaRun").addEventListener("click", ()=>{
+  const v = aaVerdict(AA_RUN), a = AA_RUN.a, b = AA_RUN.b;
+  outcome($("aaOut"), v.fair ? "RIG IS FAIR" : "RIG IS BIASED", v.fair ? "ok" : "stop", [
+    ["c","Arm A, live prompt:", a.PASS+" pass, "+a.HOLD+" hold, "+a.REVIEW+" review"],
+    ["c","Arm B, live prompt plus a comment:", b.PASS+" pass, "+b.HOLD+" hold, "+b.REVIEW+" review"],
+    ["c","Result:", v.text+" Cost "+AA_RUN.cost+"."]
+  ]);
+});
+renderLot(); renderCarry(null); renderGhost(); renderTwo(); renderSlip(); renderFormat(); renderHarness(false);
+
+$("scenblurb").textContent = S.order.blurb;
+tickClock(); setInterval(tickClock, 1000);
+resetRun();
+</script>
+<footer style="padding:18px 14px;font:13px/1.5 system-ui,sans-serif;color:#9aa4af;background:#07090c">Made-up data. <a href="/" style="color:#7cc8ff">Donald Cox</a> · <a href="/donald-cox-resume.pdf" style="color:#7cc8ff">Resume</a> · <a href="mailto:don@doncox.ai" style="color:#7cc8ff">don@doncox.ai</a> · <a href="/privacy/" style="color:#7cc8ff">Privacy</a> · <a href="/terms/" style="color:#7cc8ff">Terms</a></footer>
+</body>
+</html>

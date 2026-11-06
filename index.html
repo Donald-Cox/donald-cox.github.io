@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Donald Cox, AI Automation Engineer</title>
+<meta name="description" content="Donald Cox designs and builds production AI systems: 42 live automations and five systems that receive goods, track stock, run production and check orders.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Donald Cox, AI Automation Engineer">
+<meta property="og:description" content="Production AI systems, how they work and what they deliver.">
+<link rel="icon" href="/favicon.ico" sizes="48x48">
+<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/assets/icon-192.png" type="image/png" sizes="192x192">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="manifest" href="/site.webmanifest">
+<meta name="theme-color" content="#07090c">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebSite","name":"Donald Cox","url":"https://doncox.ai/"}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"Person","name":"Donald Cox","jobTitle":"AI Automation Engineer","email":"don@doncox.ai","url":"https://doncox.ai/","sameAs":["https://github.com/Donald-Cox"],"knowsAbout":["AI automation","LLM systems","computer vision","workflow automation","Model Context Protocol"]}</script>
+<script>document.documentElement.classList.add("js");setTimeout(function(){document.documentElement.classList.remove("js")},2200)</script>
+<link rel="preload" href="/assets/fonts/spectral-latin-300-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/assets/fonts/ibm-plex-sans-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/assets/site.css">
+<script src="/assets/vendor/gsap.min.js" defer></script>
+<script src="/assets/vendor/ScrollTrigger.min.js" defer></script>
+<script src="/assets/vendor/SplitText.min.js" defer></script>
+<script src="/assets/home.js" defer></script>
+<script src="/assets/ask.js" defer></script>
+<meta name="ask-endpoint" content="https://ask.doncox.ai/">
+<link rel="canonical" href="https://doncox.ai/">
+<meta property="og:url" content="https://doncox.ai/">
+<meta property="og:image" content="https://doncox.ai/assets/og.jpg">
+<meta property="og:site_name" content="Donald Cox">
+<meta property="og:image:width" content="2400">
+<meta property="og:image:height" content="1260">
+<meta property="og:image:alt" content="Donald Cox: I design and build the AI systems that run businesses.">
+<meta name="twitter:image" content="https://doncox.ai/assets/og.jpg">
+<meta name="twitter:card" content="summary_large_image">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<canvas id="world" aria-hidden="true" data-signature></canvas>
+<div id="rail"></div>
+<header class="top"><div class="wrap"><a class="name" href="/">Donald Cox</a><nav><a href="/#systems">Systems</a><a href="/#detail">Results</a><a href="/#ship">How I ship</a><a href="/#demos">Demos</a><a href="/donald-cox-resume.pdf">Resume</a><a href="/#contact">Contact</a></nav></div></header>
+<main id="main">
+<section class="hero"><div class="wrap">
+<h1 data-h>I design and build the AI systems that run businesses.</h1>
+<p class="sub" data-h>Architect and engineer of <span data-claim="H-automations">42</span> live automations and five production systems at a precision manufacturer. They receive goods, track stock, run production and check orders before they ship.</p>
+</div></section>
+
+<section class="value" id="returns"><div class="wrap"><div class="vgrid">
+<div class="v"><b>~<span data-claim="H-runs" data-count="1200">1,200</span></b><p>automation runs a day on the <span data-claim="H-server">30</span> server automations, out of <span data-claim="H-automations">42</span> live.</p><span class="t">Measured</span></div>
+<div class="v"><b>~<span data-claim="H-hours" data-count="350">350</span> <small>hours a year</small></b><p>of routine staff time returned across seven automations.</p><span class="t">Estimate</span></div>
+<div class="v"><b>~<span data-claim="H-hosting">$9,000</span> <small>a year</small></b><p>in hosted platform cost avoided by running on owned hardware.</p><span class="t">Modeled from a list price, converted from euros</span></div>
+<div class="v"><b>~<span data-claim="K-cost2">$0.15</span></b><p>of model spend per checked order, at roughly <span data-claim="H-orders">40</span> orders a working day.</p><span class="t">Measured from token usage, at list rates</span></div>
+</div></div></section>
+
+<div id="systems" class="wrap">
+<section class="ch" id="sys-engine" data-cam="engine"><div class="card"><span class="kick">The foundation</span><h2>A self-hosted integration bus.</h2><p>The production systems connect through a self-hosted workflow engine, with explicit webhook contracts between systems. The floor tools are small web apps, and the server-hosted ones update every desk from one container.</p><div class="ret"><div><b><span data-claim="H-automations">42</span></b><small>live automations, <span data-claim="H-server">30</span> on the server and <span data-claim="H-cloud">12</span> in the cloud</small></div><div><b><span data-claim="H-runs8">9,535</span></b><small>server runs in the <span data-claim="H-days">8 days</span> measured</small></div></div><p class="more"><a href="/work/operations-platform/">Read how the five systems fit together</a></p></div></section>
+
+<section class="ch" id="sys-intake" data-cam="intake"><div class="card"><span class="kick">System 1</span><h2>Dock intake</h2><p>A pallet arrives with dozens of cases, and each batch has to reach the storefront and the accounting system with its own traceable record. That used to mean clipboards and retyping lot codes by hand.</p><h3>How it works</h3><ul><li><span data-claim="I-workflows">Four</span> chained workflows behind one phone app</li><li>A vision model reads labels, and the printed packing list stays ground truth</li><li>Paperwork, side count and close-up count are compared, and a person settles any disagreement before anything books</li></ul><div class="ret"><div><b><span data-claim="I-staff">3 to 1</span></b><small>people per pallet, working from a phone, by my count</small></div><div><b><span data-claim="P-intake-lines">36 of 36</span></b><small>lines matched on the reference intake</small></div></div><p class="more"><a href="/demos/01-intake.html">Run the intake demo</a></p></div></section>
+
+<section class="ch" id="sys-sync" data-cam="sync"><div class="card"><span class="kick">System 2</span><h2>Inventory sync and reorder routing</h2><p>The production plan runs on a workbook of about <span data-claim="S-parts">1,000</span> active parts. Someone used to export a report, upload it and update dates by hand each morning. Now it runs itself.</p><h3>How it works</h3><ul><li>Pulls stock live from a desktop accounting system, through an API bridge</li><li><span data-claim="S-runs">Three</span> scheduled runs a day, plus an hourly poll for manual requests</li><li>Keeps automation out of the columns people own, so a person's reassignment sticks</li><li>Sets reorder dates and routes each part to its work station</li></ul><div class="ret"><div><b><span data-claim="S-runs3">3&times;</span></b><small>a day, up from once at best</small></div><div><b><span data-claim="S-hours">63 to 83</span></b><small>hours a year returned, estimated</small></div></div><p class="more"><a href="/demos/02-inventory-sync.html">Run the inventory demo</a></p></div></section>
+
+<section class="ch" id="sys-ledger" data-cam="ledger"><div class="card"><span class="kick">System 3</span><h2>Rack-to-receipt production ledger</h2><p>A stock rack that existed in no system is now tracked part by part, from raw blank to accounting receipt, across stations, travelers and labels. Its assistant can plan any floor action and cannot commit one.</p><h3>How it works</h3><ul><li>Each button press is planned in plain words, and the server enforces a person's Yes</li><li>Single-use tokens, tied to the login, refused if a part moved since the plan</li><li>Move and event logs are append only, enforced by the database</li><li>Assistant evals gate each deploy: <span data-claim="L-evals">13</span> cases, <span data-claim="L-safety">5</span> of them safety cases that must all pass</li></ul><div class="ret"><div><b><span data-claim="L-tests">487</span></b><small>tests passing on version 2.0</small></div><div><b><span data-claim="L-shadow">78 of 78</span></b><small>real floor presses matched in shadow, over <span data-claim="L-days">4 days</span></small></div></div><p class="more"><a href="/demos/03-production-ledger.html">Run the ledger demo</a></p></div></section>
+
+<section class="ch" id="sys-kiosk" data-cam="kiosk"><div class="card"><span class="kick">System 4</span><h2>Shipping verification kiosk</h2><p><span data-claim="K-stations">Two</span> camera stations check packed orders before they ship. A vision model reads what is in the box, and code compares it with the order system. The model never makes the decision.</p><h3>How it works</h3><ul><li>One workflow of <span data-claim="K-steps">72</span> steps across <span data-claim="K-hooks">5</span> webhooks</li><li>Not told the quantity or slip number, so it can't simply confirm them</li><li>Schema-checked answers, then confidence floors by product type</li><li><span data-claim="K-families">9</span> conditions force a hold, and <span data-claim="K-reviews">more than a dozen</span> send an order to review</li><li>Photos of each order stay on file as the dispute record</li></ul><div class="ret"><div><b><span data-claim="K-stopped">17</span></b><small>wrong boxes stopped and fixed in <span data-claim="K-weeks">12 weeks</span>, a measured floor</small></div><div><b>~<span data-claim="K-verify-s">9 s</span></b><small>a verify, on one partial day of the current build</small></div></div><p class="more"><a href="/demos/04-verification-kiosk.html">Run the kiosk demo</a><a href="/work/verification-kiosk/">Read the case study</a></p></div></section>
+
+<section class="ch" id="sys-watch" data-cam="watch"><div class="card"><span class="kick">System 5</span><h2>Operations watcher</h2><p>A read-only console over everything. It looks for the failure dashboards miss: the system said something was wrong, and the work moved on anyway.</p><h3>How it works</h3><ul><li>Scans <span data-claim="P-5min-b">every 5 minutes</span> during working hours, for known failure classes</li><li>Reads through a read-only collector and keeps its findings in its own store</li><li>Each rule records the real incident that created it</li></ul><div class="ret"><div><b><span data-claim="W-scan">5 min</span></b><small>between scans, on weekdays</small></div><div><b><span data-claim="W-writes">0 writes</span></b><small>to any system it watches</small></div></div><p class="more"><a href="/demos/05-watchtower.html">Run the watcher demo</a></p></div></section>
+
+<section class="ch" id="sys-more" data-cam="more"><div class="card"><span class="kick">And the daily work</span><h2>The routine jobs that no longer need a person.</h2><p>Backorder copying, a payments check, a daily accounting report, a paid-order watch and new stock emails all run without anyone touching them.</p><div class="ret"><div><b>~<span data-claim="M-hours">225</span></b><small>hours a year across these five, estimated</small></div><div><b><span data-claim="M-watch">30 min</span></b><small>between paid-order checks</small></div></div></div></section>
+<section class="ch" id="sys-adapt" data-cam="adapt"><div class="card"><span class="kick">Beyond the shop floor</span><h2>Adapt Automations, the company I founded.</h2><p>Adapt builds websites, automation and apps for paying clients.</p><h3>Lead Hunter</h3><ul><li>Scans local businesses, then runs them through a CRM to a personalized preview site</li><li>Previews print only facts it can trace to a source</li><li>Outreach is blocked on the server until a person approves the preview</li></ul><h3>Nico</h3><ul><li>A live LLM chatbot scoped to the site's own content, with a red-team suite rerun on each prompt, knowledge or model change</li></ul><div class="ret"><div><b><span data-claim="A-biz">6,623</span></b><small>businesses in the Lead Hunter database</small></div><div><b><span data-claim="A-tests">2,235</span></b><small>tests passing on the Lead Hunter CRM</small></div></div><p class="more"><a href="https://adaptautomations.com/tools/report-card/" rel="noopener">Try the public Report Card</a><a href="https://adaptautomations.com/" rel="noopener">adaptautomations.com</a></p></div></section>
+</div>
+
+<section class="solid" id="detail"><div class="wrap">
+<span class="kick">The results in detail</span>
+<h2>Hours back, errors stopped, costs avoided, and problems no one had found.</h2>
+<div class="board">
+<div class="cell w7"><b class="big"><span data-claim="K-stopped">17</span></b><p>wrong boxes stopped and fixed before they shipped, in <span data-claim="K-weeks">12 weeks</span>, each proved by comparing the stopped and corrected photos. This is a floor. The same review counted <span data-claim="K-falsestops">89</span> stops on boxes packed correctly.</p><span class="t">Measured</span></div>
+<div class="cell w5"><b class="big">~<span data-claim="H-hours">350</span> <small>hours a year</small></b><p>of routine staff time returned across <span data-claim="H-seven">seven</span> automations.</p><div class="hrs" aria-label="Hours by automation"><i style="flex:42"><em>Intake <span data-claim="I-hours">42</span></em></i><i style="flex:83"><em>Sync up to <span data-claim="S-hours-hi">83</span></em></i><i style="flex:225"><em>Five routine jobs, about <span data-claim="M-hours">225</span></em></i></div><span class="t">Estimated by the builder, on stated minutes per task</span></div>
+<div class="cell w6"><b class="big">~<span data-claim="H-hosting">$9,000</span> <small>a year</small></b><p>in hosted platform cost avoided by running the workflow engine on owned hardware.</p><span class="t">Modeled from a vendor list price, converted from euros</span></div>
+<div class="cell w6"><b class="big">~<span data-claim="K-cost2">$0.15</span></b><p>of model spend per order, with each verify taking <span data-claim="K-verify-time">about 9 seconds</span> at <span data-claim="K-orders-b">roughly 40</span> orders a working day.</p><span class="t">Measured. Cost at list rates, seconds from one partial day</span></div>
+<div class="cell" style="grid-column:span 12"><b class="big"><span data-claim="C-flow">90, 46, 44</span></b><p>In, out and left. The books said <span data-claim="C-book">42</span>, and every system called that shelf correct. I traced the surplus to a proven wrong-lot shipment, then built the check that closes the gap.</p><span class="t">Measured</span></div>
+</div>
+</div></section>
+<section class="solid" id="ship" style="border-top:0;padding-top:0"><div class="wrap">
+<span class="kick">How I ship</span>
+<h2>Each verdict engine and prompt change is tested against written gates before it reaches the floor.</h2>
+<p class="lede">The release process is a system too. Gates are written before the run and don't change after it, and a person rules on any gate a change fails. Verdict engine changes replay against stored decisions, and prompt changes run side by side against the live prompt.</p>
+<div class="ladder" id="ladder"><div style="height:90px"><b><span data-claim="R-unit">12 to 69</span></b><small>unit tests a release</small></div><div style="height:125px"><b><span data-claim="R-live">13 to 37</span></b><small>of that day's live runs</small></div><div style="height:160px"><b><span data-claim="R-retained">188 to 232</span></b><small>retained runs, full inputs</small></div><div style="height:195px"><b><span data-claim="R-recount">290</span></b><small>runs recounted from photos</small></div><div style="height:232px"><b><span data-claim="K-replay">2,830</span></b><small>stored final decisions</small></div></div>
+</div></section>
+
+<section class="solid" id="fool" style="padding-top:0;border-top:0"><div class="wrap">
+<span class="kick">Runs in this page</span>
+<h2>Try one of the kiosk's rules.</h2>
+<p class="lede">The order expects lot <strong style="color:var(--ink);font-weight:500">L26-0417-A</strong>. Write what the model claims it read, and this rule decides.</p>
+<div class="try">
+<div><label for="lot">What the model wrote in the lot field</label><input id="lot" autocomplete="off" spellcheck="false"><div class="chips" id="chips"><button data-v="">Blank</button><button data-v="Slip confirms the lot">Cite the slip</button><button data-v="consistent with L26-0417-A">Hedge</button><button data-v="L26-0417-B">Wrong lot</button><button data-v="L26-0417-A (matches expected)">Real read</button></div></div>
+<div aria-live="polite"><div class="out no" id="out">Review</div><p id="why"></p></div>
+</div>
+</div></section>
+<section class="solid" id="demos" style="padding-top:0;border-top:0"><div class="wrap">
+<span class="kick">Run them yourself</span>
+<h2>Five systems you can operate in your browser.</h2>
+<p class="lede">Clean-room versions on made-up data. Flip the switches, break things and watch which part catches it.</p>
+<ol class="rows">
+<li><a href="/demos/01-intake.html"><b>Dock intake</b><span>Read a pallet, cross-check three sources and book lots.</span></a></li>
+<li><a href="/demos/02-inventory-sync.html"><b>Inventory sync</b><span>Step through a day of stock pulls and reorder routing.</span></a></li>
+<li><a href="/demos/03-production-ledger.html"><b>Production ledger</b><span>Sign in, take a batch from rack to receipt, and switch to Admin to book it.</span></a></li>
+<li><a href="/demos/04-verification-kiosk.html"><b>Shipping kiosk</b><span>Six ways to break it, a release harness and a test of the test rig.</span></a></li>
+<li><a href="/demos/05-watchtower.html"><b>Operations watcher</b><span>Watch a sweep raise findings with their evidence.</span></a></li>
+</ol>
+</div></section>
+<section class="solid" id="creds" style="padding-top:0;border-top:0"><div class="wrap">
+<span class="kick">Credentials</span>
+<h2>Courses and exams on the stack I build on.</h2>
+<table class="cred">
+<tr><td>AWS Agentic AI Demonstrated, hands-on exam lab</td><td>AWS</td><td><a href="https://www.credly.com/badges/64641547-9ebb-4084-ae60-7c2689d23c91/public_url" rel="noopener">Verify</a></td></tr>
+<tr><td>Agents Course, Certificate of Excellence</td><td>Hugging Face</td><td>On request</td></tr>
+<tr><td>Claude with the Anthropic API, Claude with Amazon Bedrock, MCP Advanced Topics, and six more courses</td><td>Anthropic Academy</td><td>On request</td></tr>
+<tr><td>N8N101, N8N102 and N8N103, the full Foundations program</td><td>n8n Academy</td><td>Verify <a href="https://learn.n8n.io/certificates/44510a2355f84d978526e75b6f34187a" rel="noopener" aria-label="Verify N8N101">101</a>, <a href="https://learn.n8n.io/certificates/d5afe1870fff4ca58d8b70848b5b2a7c" rel="noopener" aria-label="Verify N8N102">102</a>, <a href="https://learn.n8n.io/certificates/e0dd04d2a2694e8db1fe968eebe9ee31" rel="noopener" aria-label="Verify N8N103">103</a></td></tr>
+<tr><td>In progress: AWS Cloud Practitioner</td><td>AWS</td><td></td></tr>
+</table>
+</div></section>
+<section class="solid" id="outside" style="padding-top:0;border-top:0"><div class="wrap">
+<span class="kick">Outside the code</span>
+<p class="lede" style="margin:0;font:300 clamp(22px,2.1vw,30px)/1.3 var(--serif);color:var(--ink);max-width:34em">I am an FAA commercial pilot, single and multi-engine land, with an instrument rating, and I spent six years in law enforcement. Checklists, procedure and calm failure handling were habits long before I built my first automation.</p>
+</div></section>
+<section class="solid" id="contact" style="padding-top:0;border-top:0"><div class="wrap">
+<h2>Get in touch.</h2>
+<p class="lede" style="margin:0 0 12px">Based in south Georgia. Open to remote AI engineering roles.</p>
+<p class="lede" style="margin:0">Email <a href="mailto:don@doncox.ai">don@doncox.ai</a>. The code for this site and its demos is at <a href="https://github.com/Donald-Cox" rel="noopener">github.com/Donald-Cox</a>. <a href="/donald-cox-resume.pdf">Download my resume</a>.</p>
+</div></section>
+</main>
+<footer class="site-foot"><div class="wrap"><p>Donald Cox. The map shows the real structure of the systems, with illustrative data flow and no live data.</p><p class="legal"><a href="/privacy/">Privacy</a><a href="/terms/">Terms</a><a href="https://github.com/Donald-Cox" rel="noopener">GitHub</a></p></div></footer>
+</body>
+</html>

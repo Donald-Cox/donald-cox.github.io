@@ -1,0 +1,719 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Operations watcher | Donald Cox</title>
+<style>
+/* ==== NB SHARED TOKENS v1 ====================================================
+   Keep this block byte-identical across all five demo files. If it changes,
+   run demos/sync-shared.py so every demo stays in step.
+   ========================================================================== */
+:root{
+  --ink:#0d1014;
+  --panel:#141920;
+  --panel-2:#1a212a;
+  --well:#0a0d11;
+  --rule:#28323d;
+  --rule-soft:#1f2731;
+  --text:#d5dde5;
+  --text-hi:#f2f6fa;
+  --dim:#8f9ba8;
+  --dimmer:#7f8b98;
+  --copper:#c9773c;
+  --copper-hi:#e69a55;
+  --copper-dim:#7a4823;
+  --ok:#6f9b6a;
+  --warn:#c2a03c;
+  --stop:#de6653;
+  --model:#7196b8;
+  --code:#c9773c;
+  --mono:ui-monospace,"SF Mono",SFMono-Regular,"Cascadia Mono",Menlo,Consolas,"Liberation Mono",monospace;
+  --serif:"Iowan Old Style","Palatino Linotype",Palatino,"Book Antiqua",Georgia,serif;
+  --t-fast:120ms cubic-bezier(.2,0,0,1);
+  --t-mech:260ms cubic-bezier(.33,0,.15,1);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--ink);
+  color:var(--text);
+  font-family:var(--mono);
+  font-size:14px;
+  line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+  background-image:
+    repeating-linear-gradient(0deg,rgba(255,255,255,.014) 0 1px,transparent 1px 3px),
+    radial-gradient(120% 80% at 50% -10%,rgba(201,119,60,.07),transparent 60%);
+}
+.wrap{max-width:1240px;margin:0 auto;padding:20px 18px 64px}
+.lab{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim)}
+.num{font-variant-numeric:tabular-nums}
+.prose{font-family:var(--serif);font-size:15.5px;line-height:1.62;color:var(--text)}
+.prose p{margin:0 0 .85em}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+.btn{
+  font-family:var(--mono);font-size:11px;letter-spacing:.13em;text-transform:uppercase;
+  padding:9px 16px;border:1px solid var(--rule);background:var(--panel-2);color:var(--text);
+  transition:border-color var(--t-fast),background var(--t-fast),color var(--t-fast);
+}
+.btn:hover:not(:disabled){border-color:var(--copper);color:var(--text-hi)}
+.btn:focus-visible{outline:2px solid var(--copper-hi);outline-offset:2px}
+.btn:disabled{opacity:.35;cursor:not-allowed}
+.btn-p{background:var(--copper);border-color:var(--copper);color:#160d06;font-weight:700}
+.btn-p:hover:not(:disabled){background:var(--copper-hi);border-color:var(--copper-hi);color:#160d06}
+.panel{background:var(--panel);border:1px solid var(--rule-soft)}
+.panel-hd{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  padding:9px 14px;border-bottom:1px solid var(--rule-soft);background:var(--panel-2);
+}
+.rule{height:1px;background:var(--rule-soft);border:0;margin:0}
+.sw{display:inline-flex;align-items:center;gap:9px;cursor:pointer;user-select:none}
+.sw input{position:absolute;opacity:0;width:0;height:0}
+.sw .track{
+  width:34px;height:16px;background:var(--well);border:1px solid var(--rule);
+  position:relative;flex:none;transition:border-color var(--t-fast),background var(--t-fast);
+}
+.sw .track::after{
+  content:"";position:absolute;top:1px;left:1px;width:12px;height:12px;background:var(--dimmer);
+  transition:transform var(--t-mech),background var(--t-mech);
+}
+.sw input:checked + .track{border-color:var(--copper-dim);background:#1b120a}
+.sw input:checked + .track::after{transform:translateX(16px);background:var(--copper)}
+.sw input:focus-visible + .track{outline:2px solid var(--copper-hi);outline-offset:2px}
+.sw .txt{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim)}
+.sw input:checked ~ .txt{color:var(--text)}
+.banner{
+  border:1px solid var(--rule-soft);border-left:2px solid var(--copper-dim);
+  background:linear-gradient(90deg,rgba(201,119,60,.06),transparent 60%);
+  padding:9px 14px;font-size:11.5px;color:var(--dim);margin-bottom:14px;line-height:1.6;
+}
+details.drawer{border:1px solid var(--rule-soft);background:var(--panel);margin-top:18px}
+details.drawer > summary{
+  padding:11px 14px;cursor:pointer;font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--dim);list-style:none;display:flex;align-items:center;gap:10px;
+}
+details.drawer > summary::-webkit-details-marker{display:none}
+details.drawer > summary::before{content:"+";color:var(--copper);font-weight:700}
+details.drawer[open] > summary::before{content:"-"}
+details.drawer > summary:hover{color:var(--text)}
+.drawer-body{padding:4px 18px 20px;border-top:1px solid var(--rule-soft)}
+@media (max-width:720px){ .wrap{padding:14px 12px 48px} }
+/* ==== END NB SHARED TOKENS ================================================ */
+
+.mast{display:flex;align-items:baseline;justify-content:space-between;gap:16px;flex-wrap:wrap;border-bottom:1px solid var(--rule);padding-bottom:10px;margin-bottom:14px}
+.mast h1{font-size:15px;letter-spacing:.2em;text-transform:uppercase;margin:0;font-weight:700;color:var(--text-hi)}
+.mast h1 span{color:var(--copper)}
+
+/* the instrument readout. Not a pill, not a glowing dot. */
+.instr{border:1px solid var(--rule-soft);background:var(--panel);margin-bottom:14px}
+.instr-row{display:flex;align-items:center;gap:18px;padding:10px 14px;flex-wrap:wrap}
+.instr-row .seg{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
+.instr-row .seg b{color:var(--text-hi);font-weight:400;letter-spacing:.06em}
+.instr-row .state{color:var(--copper-hi)}
+.sweepbar{height:2px;background:var(--well);position:relative;overflow:hidden}
+.sweepbar i{position:absolute;left:0;top:0;bottom:0;background:var(--copper);width:0;transition:width 1s linear}
+.sweepbar.paused i{background:var(--dimmer)}
+
+.split{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.35fr);gap:14px;align-items:start}
+@media (max-width:960px){ .split{grid-template-columns:1fr} }
+
+/* conventional dashboard, deliberately reassuring */
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--rule-soft)}
+.tile{background:var(--panel);padding:14px}
+.tile .k{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
+.tile .v{font-size:26px;letter-spacing:.04em;color:var(--ok);margin-top:4px}
+.tile .v.calm{color:var(--text-hi)}
+.tile .sub{font-size:10.5px;color:var(--dimmer);margin-top:3px}
+.allgreen{padding:10px 14px;font-size:11px;color:var(--ok);border-top:1px solid var(--rule-soft)}
+
+.finding{padding:11px 14px;border-bottom:1px solid var(--rule-soft);cursor:pointer;transition:background var(--t-fast)}
+.finding:hover{background:var(--panel-2)}
+.finding:focus-visible{outline:2px solid var(--copper-hi);outline-offset:-2px}
+.finding.sel{background:var(--panel-2);box-shadow:inset 2px 0 0 var(--copper)}
+.finding .fh{display:flex;justify-content:space-between;gap:10px;align-items:baseline;flex-wrap:wrap}
+.finding .rule{height:auto;background:none;font-size:12px;color:var(--text-hi);letter-spacing:.04em}
+.finding .when{font-size:10px;color:var(--dim);white-space:nowrap}
+.finding .sub{font-size:11px;color:var(--dim);margin-top:4px;line-height:1.5}
+.sev{font-size:9px;letter-spacing:.12em;text-transform:uppercase;padding:2px 7px;border:1px solid}
+.sev.concern{border-color:var(--stop);color:var(--stop)}
+.sev.watch{border-color:var(--warn);color:var(--warn)}
+.sev.info{border-color:var(--rule);color:var(--dim)}
+.empty{padding:26px 14px;text-align:center;color:var(--dimmer);font-size:11.5px;line-height:1.7}
+
+.why{margin-top:7px;border-left:2px solid var(--copper-dim);padding:5px 10px;background:var(--well);font-size:10.5px;color:var(--dim);line-height:1.55}
+.why b{color:var(--copper-hi);font-weight:400;display:block;margin-bottom:2px;font-size:9px;letter-spacing:.12em;text-transform:uppercase}
+
+.dossier{padding:14px}
+.dossier h2{margin:0 0 4px;font-size:12px;letter-spacing:.1em;color:var(--text-hi);font-weight:400}
+.dossier .meta{font-size:10.5px;color:var(--dim);margin-bottom:12px}
+.tl{margin:0;padding:0;border-left:1px solid var(--rule);margin-left:5px}
+.tl li{list-style:none;position:relative;padding:0 0 11px 16px;font-size:11px;color:var(--dim);line-height:1.55}
+.tl li::before{content:"";position:absolute;left:-4px;top:5px;width:7px;height:7px;background:var(--copper)}
+.tl li b{color:var(--text);font-weight:400}
+.tl li.bad::before{background:var(--stop)}
+.evi{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:10px}
+.evi div{background:var(--well);border:1px solid var(--rule);aspect-ratio:4/3;overflow:hidden}
+.evi svg{display:block;width:100%;height:100%}
+.confbar{position:relative;height:16px;background:var(--well);border:1px solid var(--rule);margin-top:8px}
+.confbar i{position:absolute;left:0;top:0;bottom:0;background:var(--model);opacity:.5}
+.confbar u{position:absolute;top:-2px;bottom:-2px;width:2px;background:var(--code);text-decoration:none}
+.confbar span{position:absolute;right:5px;top:0;font-size:10px;color:var(--text-hi)}
+.triage{margin-top:12px;border:1px solid var(--rule-soft);background:var(--panel-2);padding:11px}
+.triage .hd{font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--model);margin-bottom:5px}
+.triage .body{font-size:11.5px;color:var(--text);line-height:1.6}
+.triage .foot{margin-top:8px;font-size:10px;color:var(--dimmer);border-top:1px solid var(--rule-soft);padding-top:7px}
+.acts{display:flex;gap:7px;margin-top:11px;flex-wrap:wrap}
+
+.switches{display:flex;flex-wrap:wrap;gap:10px 24px;padding:12px 14px}
+.calib{padding:12px 14px}
+.calib .bar{height:14px;background:var(--well);border:1px solid var(--rule);position:relative;margin:7px 0}
+.calib .bar i{position:absolute;left:0;top:0;bottom:0;background:var(--warn);opacity:.55;width:0;transition:width 900ms cubic-bezier(.33,0,.15,1)}
+.calib .bar span{position:absolute;right:5px;top:-1px;font-size:10px;color:var(--text-hi)}
+</style>
+<meta name="description" content="Interactive demo: a read-only watcher that raises what a green dashboard misses, such as a flag passed anyway or a station gone dark. Runs on invented data.">
+<link rel="canonical" href="https://doncox.ai/demos/05-watchtower.html">
+<meta name="theme-color" content="#07090c">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://doncox.ai/demos/05-watchtower.html">
+<meta property="og:title" content="Operations watcher | Donald Cox">
+<meta property="og:description" content="Interactive demo: a read-only watcher that raises what a green dashboard misses, such as a flag passed anyway or a station gone dark. Runs on invented data.">
+<meta property="og:site_name" content="Donald Cox">
+<meta property="og:image" content="https://doncox.ai/assets/og.jpg">
+<meta property="og:image:width" content="2400">
+<meta property="og:image:height" content="1260">
+<meta property="og:image:alt" content="Donald Cox: I design and build the AI systems that run businesses.">
+<meta name="twitter:image" content="https://doncox.ai/assets/og.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/favicon.ico" sizes="48x48">
+<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+</head>
+<body>
+<main>
+<div class="wrap">
+
+  <div class="banner">
+    Demonstration environment. Invented orders, invented stations, synthetic evidence. It
+    reproduces the detection logic of a monitoring console running in production at a
+    manufacturer. The sweep is compressed: the real one runs every five minutes during working
+    hours, entirely read only.
+  </div>
+
+  <div class="mast">
+    <h1>Northbeam <span>Precision</span> / Operations watcher</h1>
+  </div>
+
+  <div class="instr">
+    <div class="instr-row">
+      <span class="seg">ON WATCH <b class="num" id="clock">00:00:00</b> ET</span>
+      <span class="seg">NEXT SWEEP <b class="num" id="next">0:00</b></span>
+      <span class="seg">SWEPT <b class="num" id="sweeps">0</b></span>
+      <span class="seg">OPEN <b class="num" id="openct">0</b></span>
+      <span class="seg state" id="state">watching</span>
+      <span style="margin-left:auto;display:flex;gap:8px">
+        <button class="btn" id="sweepNow">Sweep now</button>
+        <button class="btn" id="pause">Pause</button>
+        <button class="btn" id="reset">Reset</button>
+      </span>
+    </div>
+    <div class="sweepbar" id="bar"><i id="barFill"></i></div>
+  </div>
+
+  <div class="split">
+    <section class="panel">
+      <div class="panel-hd">
+        <span class="lab">Conventional dashboard</span>
+        <span class="lab">what everyone else is looking at</span>
+      </div>
+      <div class="tiles">
+        <div class="tile"><div class="k">Verified today</div><div class="v calm num" id="dVer">0</div><div class="sub">orders through the station</div></div>
+        <div class="tile"><div class="k">Pass rate</div><div class="v num" id="dPass">-</div><div class="sub">verdict PASS over total</div></div>
+        <div class="tile"><div class="k">Errors</div><div class="v num" id="dErr">0</div><div class="sub">pipeline executions failed</div></div>
+        <div class="tile"><div class="k">Stations up</div><div class="v num" id="dSt">2 of 2</div><div class="sub" id="dStSub">last report just now</div></div>
+      </div>
+      <div class="allgreen" id="dNote">All green. Nothing here is wrong, and that is the problem.</div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-hd">
+        <span class="lab">Findings</span>
+        <span class="lab">flagged, then passed anyway</span>
+      </div>
+      <div id="findings"><div class="empty">Quiet.<br>This is the normal state.<br>Let the sweep run, or break something below.</div></div>
+    </section>
+  </div>
+
+  <section class="panel" style="margin-top:14px" id="dossierPanel" hidden>
+    <div class="panel-hd"><span class="lab">Dossier</span><span class="lab" id="dossierWhat"></span></div>
+    <div class="dossier" id="dossier"></div>
+  </section>
+
+  <section class="panel" style="margin-top:14px">
+    <div class="panel-hd"><span class="lab">Break something</span><span class="lab">the failures that leave a dashboard green</span></div>
+    <div class="switches">
+      <label class="sw"><input type="checkbox" id="swDark"><span class="track"></span><span class="txt">A station goes dark</span></label>
+      <label class="sw"><input type="checkbox" id="swDead"><span class="track"></span><span class="txt">A component dies while still billing</span></label>
+    </div>
+    <p style="padding:0 14px 14px;margin:0;font-size:12px;color:var(--dim);line-height:1.65" id="swNote">
+      Neither of these turns a dashboard red. A dark station reports nothing at all, which reads as
+      no failures, and a dead component keeps returning a green status while producing no output.
+    </p>
+  </section>
+
+  <section class="panel" style="margin-top:14px">
+    <div class="panel-hd"><span class="lab">Calibration</span><span class="lab">the other half of a real catch rate</span></div>
+    <div class="calib">
+      <div style="font-size:11.5px;color:var(--dim);line-height:1.65">
+        Candidate rule under calibration: <b style="color:var(--text)">label lacks the product family prefix</b>.
+        Sound in theory. Over a 197 execution window it fired 215 times, on almost every order, because internal family prefixes never appear on a physical label at all.
+      </div>
+      <div class="bar"><i id="calBar"></i><span class="num" id="calNum">0 false fires</span></div>
+      <div style="font-size:11.5px;color:var(--dim);line-height:1.65">
+        Retired. A monitor that cries wolf gets muted, and a muted monitor is worse than none.
+        From the same window: zero cases of a hard failure that was nonetheless passed, and
+        confidence landing exactly at the floor on 23 percent of traffic, which is house style
+        rather than a defect and is only meaningful when the product has a look-alike sibling.
+        That is why the sibling rule survived and this one did not.
+      </div>
+      <div class="acts"><button class="btn" id="calRun">Run the calibration</button></div>
+    </div>
+  </section>
+
+  <details class="drawer">
+    <summary>How this works</summary>
+    <div class="drawer-body">
+      <div class="prose">
+        <p><b>Why it exists.</b> The verification system was working. It was reading labels
+        correctly and naming discrepancies correctly. At least four wrong shipments went out anyway.
+        In three of them the discrepancy was raised in a way that could be clicked past,
+        and nothing downstream ever asked whether a flag had been resolved or merely dismissed. On
+        every dashboard those orders were green. They passed.</p>
+
+        <p><b>Shape.</b> A read-only collector runs against the workflow engine's own execution
+        database through a watermark, every five minutes, during working hours. It writes nothing to
+        anything it observes and keeps its own findings store. Findings are triaged by a reasoning
+        model, and the assessment sits beside the raw evidence. The model advises and changes no verdict.</p>
+
+        <p><b>Every rule records the incident that created it.</b> That is a deliberate documentation
+        practice: nobody may delete a rule without reading why it was written. Open the provenance
+        line on any finding above.</p>
+
+        <p><b>Investigation.</b> Click a finding, or type any order number, and get the attempts
+        timeline in local time, who was signed in for each attempt, per line confidence against its
+        floor, every flag raised, and the actual photographs the vision model judged, recovered from
+        the execution record. Before this existed that reconstruction was a series of manual database
+        queries and a hunt through cloud storage folders.</p>
+
+        <p><b>Two traps worth knowing.</b> An order lookup that returns nothing usually means the
+        execution history has aged out of retention, not that the record never existed, so queries
+        are bounded by date. And order numbers appear quoted inside hundreds of unrelated execution
+        payloads, so a plain substring search returns noise; photograph recovery is anchored on the
+        finding's own execution identifiers.</p>
+
+        <p><b>A fault this watcher did not catch.</b> An AI component feeding its training queue
+        returned nothing for eighteen hours while re-billing the same three calls every thirty
+        minutes. It looked healthy from outside. The morning check and an audit found it. The cause
+        was a token budget that the model's own default reasoning consumed entirely, leaving no room
+        for output. Repairing it surfaced two wrong-shipment risks that had been invisible, and the
+        failure now has its own rule.</p>
+
+        <p><b>It runs on the server, not on a desk.</b> This started as a compiled desktop program
+        and that version was retired, because the floor has to be watched even when a particular
+        workstation is off. On the day that decision was made, the machinist's workstation was asleep
+        for the entire build session and nothing was blocked by it. Each desk now opens the same URL
+        as a desktop-app-mode window, and rebuilding the container updates every desk at once.</p>
+
+        <p><b>Plain text for operators.</b> Model prose is normalized before it reaches an operator. Characters are never deleted, because deleting welds neighbors together and
+        silently corrupts arithmetic inside a note.</p>
+
+        <p><b>Measured.</b> Sweep every five minutes, working hours, weekdays, for known failure classes. It makes no promise about every defect. Calibrated over a 197
+        execution window. Zero blunt hard-failure-but-passed cases found. One candidate rule retired
+        after 215 false fires. A rule written after a production machine sat powered off for an entire weekend, where the tell was subtle: the network controller
+        still listed the client with a stale uptime for over half an hour and the switch port stayed
+        link-up the whole time. </p>
+      </div>
+    </div>
+  </details>
+</div>
+
+</main>
+<script>
+"use strict";
+/* =========================================================================
+   Operations watcher, demo. Invented orders, stations and evidence.
+   Deterministic: no randomness anywhere, so the test can assert outcomes.
+   ========================================================================= */
+
+const SWEEP_SECONDS = 20;          /* compressed from five minutes */
+const SWEEP_MINUTES = 5;           /* what one sweep represents */
+
+/* A scripted stream of verification executions. `t` is minutes into the shift. */
+const STREAM = [
+  { id:"NB-20101", t:2,  station:"A", who:"Operator A", verdict:"PASS", conf:0.97, floor:0.90, category:"low" },
+  { id:"NB-20102", t:6,  station:"B", who:"Operator B", verdict:"PASS", conf:0.96, floor:0.90, category:"low" },
+  { id:"NB-20103", t:9,  station:"A", who:"Operator A", verdict:"PASS", conf:0.95, floor:0.95, category:"high",
+    sibling:"NB-TRQ-014-STD",
+    note:"cleared by the smallest possible margin against a look-alike sibling" },
+  { id:"NB-20104", t:13, station:"B", who:"Operator B", verdict:"HOLD", conf:0.41, floor:0.90, category:"low",
+    overriddenCorrect:true, blurrySlip:true,
+    note:"held on a blurry packing slip, overridden, goods were correct" },
+  { id:"NB-20105", t:17, station:"A", who:"Operator A", verdict:"PASS", conf:0.93, floor:0.90, category:"low" },
+  { id:"NB-20106", t:21, station:"B", who:"Operator B", verdict:"PASS", conf:0.94, floor:0.90, category:"low",
+    retakeNamedDiscrepancy:"retake note reads: second box is the wrong size",
+    note:"the pipeline named a discrepancy and the order passed anyway" },
+  { id:"NB-20107", t:26, station:"A", who:"Operator A", verdict:"PASS", conf:0.98, floor:0.90, category:"low" },
+  { id:"NB-20108", t:31, station:"B", who:"Operator B", verdict:"PASS", conf:0.91, floor:0.95, category:"high",
+    intendedFloor:0.95,
+    note:"a high risk category cleared below the floor that was supposed to apply to it" },
+  { id:"NB-20109", t:36, station:"A", who:"Operator A", verdict:"PASS", conf:0.97, floor:0.90, category:"low" },
+  { id:"NB-20110", t:41, station:"B", who:"Operator B", verdict:"PASS", conf:0.96, floor:0.90, category:"low" }
+];
+
+/* Every rule carries the incident that caused it to be written. Provenance is the point. */
+const RULES = [
+  { id:"sibling_at_floor", label:"Cleared at exactly the floor, look-alike sibling exists",
+    sev:"concern",
+    why:"Written after an order cleared at exactly its floor while a near-identical sibling part existed one character away in the catalog. Confidence at the floor is 23 percent of traffic and harmless on its own. It is only meaningful when a look-alike sibling exists, which is what this rule tests.",
+    triage:"The margin is zero and a sibling part exists. Confidence alone cannot separate these two. Physically check the part before release rather than reasoning about the score.",
+    test: e => e.verdict === "PASS" && e.conf === e.floor && !!e.sibling },
+
+  { id:"named_contradiction_discarded", label:"Discrepancy named, then passed anyway",
+    sev:"concern",
+    why:"Written after three confirmed wrong shipments. In every one of them the pipeline detected and correctly described the discrepancy, a non-blocking retake let it through, and nothing downstream ever asked whether the flag had been resolved or merely dismissed. This is the rule the whole system exists for.",
+    triage:"The system said something was wrong, in words, and the order shipped. Read the retake note before anything else. This is the exact shape of those three wrong shipments.",
+    test: e => e.verdict === "PASS" && !!e.retakeNamedDiscrepancy },
+
+  { id:"category_floor_inert", label:"High risk category cleared below its intended floor",
+    sev:"concern",
+    why:"Written after a special-rules mechanism that everyone believed was raising the bar for a high risk category turned out to be inert. The stricter floor had never once been applied. The rule watches for the condition the dead mechanism was supposed to catch.",
+    triage:"The stricter floor did not apply. Treat the verdict as if it had been scored against the loose floor, because it was.",
+    test: e => e.verdict === "PASS" && e.category === "high" && e.intendedFloor && e.conf < e.intendedFloor },
+
+  { id:"false_hold_blurry_slip", label:"Stop on correct goods",
+    sev:"watch",
+    why:"Written to watch the system's own false positives. Measured honestly: of 16 override-and-ship finalizes, 7 overrode a stop. The 3 of those checked from photos all had correct goods. A gate that stops correct work teaches its operators to click through, which destroys the value of every true stop.",
+    triage:"Goods were correct. This is a false stop, and false stops are tracked as carefully as misses because they erode the stop signal.",
+    test: e => e.verdict === "HOLD" && e.overriddenCorrect === true }
+];
+
+const STATE = {
+  running:true, tick:0, sweeps:0, minutes:0, ingested:0,
+  execs:[], findings:[], sel:null, dark:false, deadFrom:null
+};
+const $ = id => document.getElementById(id);
+
+/* ---- DOM helpers ---- */
+function el(tag, opts, kids){
+  const n = document.createElement(tag);
+  if(opts){
+    if(opts.cls) n.className = opts.cls;
+    if(opts.text != null) n.textContent = opts.text;
+    if(opts.style) n.setAttribute("style", opts.style);
+    if(opts.attrs) for(const k in opts.attrs) n.setAttribute(k, opts.attrs[k]);
+  }
+  if(kids) kids.forEach(c=>{ if(c) n.appendChild(typeof c === "string" ? document.createTextNode(c) : c); });
+  return n;
+}
+function clear(n){ while(n.firstChild) n.removeChild(n.firstChild); }
+function esc(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+function svgNode(str){
+  const doc = new DOMParser().parseFromString(str,"image/svg+xml");
+  if(doc.getElementsByTagName("parsererror").length) return el("div",{cls:"lab",text:"evidence unavailable"});
+  return document.importNode(doc.documentElement,true);
+}
+function hhmm(min){
+  const base = 7 * 60;
+  const m = base + min;
+  return String(Math.floor(m/60)).padStart(2,"0") + ":" + String(m%60).padStart(2,"0");
+}
+
+/* ---- evidence ---- */
+function svgEvidence(kind, label){
+  if(kind === "slip"){
+    return '<svg viewBox="0 0 320 240" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="packing slip">'
+      + '<rect width="320" height="240" fill="#0a0d11"/><rect x="20" y="16" width="280" height="208" fill="#d9d4c8"/>'
+      + '<rect x="20" y="16" width="280" height="22" fill="#c3bcab"/>'
+      + '<text x="34" y="32" font-family="monospace" font-size="10" fill="#2b3038">PACKING SLIP</text>'
+      + '<text x="34" y="70" font-family="monospace" font-size="9" fill="#2b3038">'+esc(label)+'</text>'
+      + '</svg>';
+  }
+  return '<svg viewBox="0 0 320 240" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="goods">'
+    + '<rect width="320" height="240" fill="#0f1319"/><rect x="0" y="180" width="320" height="60" fill="#171c23"/>'
+    + '<rect x="70" y="52" width="180" height="120" fill="#b9a98d" stroke="#8d7f68"/>'
+    + '<rect x="86" y="70" width="148" height="84" fill="#efe9dc"/>'
+    + '<text x="98" y="100" font-family="monospace" font-size="9" fill="#22262d">NORTHBEAM</text>'
+    + '<text x="98" y="122" font-family="monospace" font-size="9" fill="#22262d">'+esc(label)+'</text>'
+    + '</svg>';
+}
+
+/* ---- the collector, read only by construction ---- */
+function ingest(uptoMinutes){
+  const fresh = [];
+  STREAM.forEach(e=>{
+    if(e.t > uptoMinutes) return;
+    if(STATE.execs.some(x=>x.id === e.id)) return;
+    if(STATE.dark && e.station === "B" && e.t >= STATE.darkFrom) return;  /* dark station reports nothing */
+    STATE.execs.push(e);
+    fresh.push(e);
+  });
+  return fresh;
+}
+
+function evaluate(fresh, nowMinutes){
+  const out = [];
+  fresh.forEach(e=>{
+    RULES.forEach(r=>{
+      let hit = false;
+      try { hit = !!r.test(e); } catch(err){ hit = false; }
+      if(hit) out.push({ key:r.id + ":" + e.id, rule:r, exec:e, at:nowMinutes, kind:"exec" });
+    });
+  });
+
+  /* Station silence. A dark station does not fail, it stops existing, which is why a
+     dashboard built on failure counts cannot see it.
+     The discriminator is comparative, not absolute: one station quiet while ANOTHER is
+     still reporting means that box is down. Everything quiet at once means the shop is
+     quiet, which is not a fault. Uniform silence across unrelated devices is the tell
+     that the problem is the observer, not the observed. */
+  const lastSeen = {};
+  ["A","B"].forEach(st=>{
+    lastSeen[st] = STATE.execs.filter(x=>x.station === st).reduce((a,x)=>Math.max(a,x.t), -1);
+  });
+  ["A","B"].forEach(st=>{
+    const last = lastSeen[st];
+    if(last < 0) return;
+    const silent = nowMinutes - last;
+    const othersLive = Object.keys(lastSeen).some(o =>
+      o !== st && lastSeen[o] >= 0 && (nowMinutes - lastSeen[o]) <= SWEEP_MINUTES);
+    if(silent >= SWEEP_MINUTES * 2 && othersLive){
+      const key = "station_silent:" + st;
+      if(!STATE.findings.some(f=>f.key === key)){
+        out.push({ key:key, kind:"station", station:st, at:nowMinutes, silent:silent,
+          rule:{ id:"station_silent", label:"Station has reported nothing for " + silent + " minutes",
+            sev:"concern",
+            why:"Written after a production machine lost power on a Friday afternoon and sat dark all weekend, because nothing watched it. The tell was subtle: the network controller still listed the client with a stale uptime for over half an hour before dropping it, and the switch port stayed link-up the whole time.",
+            triage:"No executions and no errors from this station while another station keeps reporting normally. Absence of failure is not evidence of health. Check the machine physically; a powered-off box is indistinguishable from a quiet one on any dashboard built out of failure counts." } });
+      }
+    }
+  });
+
+  /* A component that produces nothing while still consuming. */
+  if(STATE.deadFrom !== null && nowMinutes - STATE.deadFrom >= SWEEP_MINUTES){
+    const key = "component_silent:triage";
+    if(!STATE.findings.some(f=>f.key === key)){
+      const mins = nowMinutes - STATE.deadFrom;
+      out.push({ key:key, kind:"component", at:nowMinutes, mins:mins,
+        rule:{ id:"component_silent", label:"Triage component has produced no output for " + mins + " minutes",
+          sev:"concern",
+          why:"Written after the component feeding the training queue returned nothing for eighteen hours while re-billing the same three calls every thirty minutes. It reported healthy the whole time. The cause was a token budget that the model's own default reasoning consumed entirely, leaving no room for any output at all.",
+          triage:"Still consuming, producing nothing, reporting healthy. Check the output budget before anything else. Repairing the equivalent failure in production immediately surfaced two risk findings that had been invisible for eighteen hours." } });
+    }
+  }
+
+  return out;
+}
+
+/* ---- render ---- */
+function renderDashboard(){
+  const n = STATE.execs.length;
+  const pass = STATE.execs.filter(e=>e.verdict === "PASS").length;
+  $("dVer").textContent = String(n);
+  $("dPass").textContent = n ? Math.round(pass / n * 100) + "%" : "-";
+  $("dErr").textContent = "0";
+  const lastB = STATE.execs.filter(x=>x.station === "B").reduce((a,x)=>Math.max(a,x.t), -1);
+  const silentB = lastB < 0 ? 0 : STATE.minutes - lastB;
+  $("dSt").textContent = "2 of 2";
+  $("dStSub").textContent = silentB >= SWEEP_MINUTES * 2
+    ? "last report " + silentB + " min ago"
+    : "last report just now";
+  $("dNote").textContent = STATE.findings.length
+    ? "Still all green. Every order below passed, so nothing here changed."
+    : "All green. Nothing here is wrong, and that is the problem.";
+}
+
+function renderFindings(){
+  const box = $("findings"); clear(box);
+  $("openct").textContent = String(STATE.findings.length);
+  if(!STATE.findings.length){
+    const e = el("div",{cls:"empty"});
+    e.appendChild(document.createTextNode("Quiet."));
+    e.appendChild(el("br")); e.appendChild(document.createTextNode("This is the normal state."));
+    e.appendChild(el("br")); e.appendChild(document.createTextNode("Let the sweep run, or break something below."));
+    box.appendChild(e);
+    return;
+  }
+  STATE.findings.slice().reverse().forEach(f=>{
+    const row = el("div",{cls:"finding" + (STATE.sel === f.key ? " sel" : ""),
+                          attrs:{ role:"button", tabindex:"0" }});
+    const fh = el("div",{cls:"fh"});
+    fh.appendChild(el("span",{cls:"rule",text:f.rule.label}));
+    const right = el("span",{style:"display:flex;gap:8px;align-items:center"});
+    right.appendChild(el("span",{cls:"sev " + f.rule.sev,text:f.rule.sev}));
+    right.appendChild(el("span",{cls:"when num",text:hhmm(f.at)}));
+    fh.appendChild(right);
+    row.appendChild(fh);
+    row.appendChild(el("div",{cls:"sub",
+      text: f.kind === "exec" ? (f.exec.id + " · " + f.exec.who + " · " + (f.exec.note || "")) :
+            f.kind === "station" ? ("Station " + f.station + " · nothing at all for " + f.silent + " minutes") :
+            ("no output for " + f.mins + " minutes, still consuming") }));
+    const why = el("div",{cls:"why"});
+    why.appendChild(el("b",{text:"why this rule exists"}));
+    why.appendChild(document.createTextNode(f.rule.why));
+    row.appendChild(why);
+
+    const open = ()=>{ STATE.sel = f.key; renderFindings(); renderDossier(f); };
+    row.addEventListener("click", open);
+    row.addEventListener("keydown", ev=>{ if(ev.key === "Enter" || ev.key === " "){ ev.preventDefault(); open(); } });
+    box.appendChild(row);
+  });
+}
+
+function renderDossier(f){
+  const p = $("dossierPanel"), d = $("dossier");
+  p.hidden = false; clear(d);
+  $("dossierWhat").textContent = f.kind === "exec" ? f.exec.id : f.rule.label;
+
+  if(f.kind === "exec"){
+    const e = f.exec;
+    d.appendChild(el("h2",{text:e.id}));
+    d.appendChild(el("div",{cls:"meta",text:"verified by " + e.who + " at station " + e.station + ", " + hhmm(e.t) + " ET"}));
+
+    const tl = el("ul",{cls:"tl"});
+    tl.appendChild(liOf("Signed in", e.who + " at station " + e.station, false));
+    tl.appendChild(liOf(hhmm(e.t) + "  attempt 1", "verdict " + e.verdict + ", confidence " + e.conf.toFixed(2) + " against a floor of " + e.floor.toFixed(2), e.verdict === "HOLD"));
+    if(e.retakeNamedDiscrepancy) tl.appendChild(liOf(hhmm(e.t + 1) + "  retake", e.retakeNamedDiscrepancy + ", non blocking, the order continued", true));
+    if(e.overriddenCorrect) tl.appendChild(liOf(hhmm(e.t + 2) + "  override", "shipped with a written reason, goods later verified correct", false));
+    if(e.sibling) tl.appendChild(liOf("Catalog", "a look-alike sibling exists: " + e.sibling, true));
+    if(e.intendedFloor) tl.appendChild(liOf("Category", "high risk, intended floor " + e.intendedFloor.toFixed(2) + ", floor actually applied " + e.floor.toFixed(2), true));
+    d.appendChild(tl);
+
+    const bar = el("div",{cls:"confbar"});
+    bar.appendChild(el("i",{style:"width:" + (e.conf * 100) + "%"}));
+    bar.appendChild(el("u",{style:"left:" + ((e.intendedFloor || e.floor) * 100) + "%"}));
+    bar.appendChild(el("span",{cls:"num",text:e.conf.toFixed(2)}));
+    d.appendChild(bar);
+    d.appendChild(el("div",{cls:"lab",style:"margin-top:5px",
+      text:"steel bar is what the model perceived, copper line is the floor the code applied"}));
+
+    const evi = el("div",{cls:"evi"});
+    evi.appendChild(el("div",{},[svgNode(svgEvidence("slip", e.id))]));
+    evi.appendChild(el("div",{},[svgNode(svgEvidence("goods", e.sibling || "TORQUE HEAD 14"))]));
+    evi.appendChild(el("div",{},[svgNode(svgEvidence("goods", "TORQUE HEAD 14"))]));
+    d.appendChild(evi);
+    d.appendChild(el("div",{cls:"lab",style:"margin-top:5px",
+      text:"the actual frames the model judged, recovered from the execution record"}));
+  } else {
+    d.appendChild(el("h2",{text:f.rule.label}));
+    d.appendChild(el("div",{cls:"meta",text:"raised at " + hhmm(f.at) + " ET by the read only collector"}));
+    const tl = el("ul",{cls:"tl"});
+    if(f.kind === "station"){
+      tl.appendChild(liOf("Last execution", "station " + f.station + ", " + f.silent + " minutes ago", true));
+      tl.appendChild(liOf("Error count", "zero, which is exactly why a dashboard cannot see this", true));
+      tl.appendChild(liOf("Network", "client still listed with a stale uptime, switch port still link-up", false));
+    } else {
+      tl.appendChild(liOf("Output", "nothing produced for " + f.mins + " minutes", true));
+      tl.appendChild(liOf("Spend", "still consuming on the same schedule", true));
+      tl.appendChild(liOf("Reported status", "healthy", false));
+    }
+    d.appendChild(tl);
+  }
+
+  const t = el("div",{cls:"triage"});
+  t.appendChild(el("div",{cls:"hd",text:"triage assessment"}));
+  t.appendChild(el("div",{cls:"body",text:f.rule.triage}));
+  t.appendChild(el("div",{cls:"foot",text:"The model advises. Nothing here changes a verdict on its own."}));
+  d.appendChild(t);
+
+  const acts = el("div",{cls:"acts"});
+  const ack = el("button",{cls:"btn",text:"Acknowledge"});
+  ack.addEventListener("click", ()=>{
+    STATE.findings = STATE.findings.filter(x=>x.key !== f.key);
+    STATE.sel = null; $("dossierPanel").hidden = true;
+    renderFindings(); renderDashboard();
+  });
+  acts.appendChild(ack);
+  const close = el("button",{cls:"btn",text:"Close"});
+  close.addEventListener("click", ()=>{ STATE.sel = null; $("dossierPanel").hidden = true; renderFindings(); });
+  acts.appendChild(close);
+  d.appendChild(acts);
+}
+function liOf(head, body, bad){
+  const li = el("li",{cls:bad ? "bad" : ""});
+  li.appendChild(el("b",{text:head}));
+  li.appendChild(document.createTextNode("  " + body));
+  return li;
+}
+
+/* ---- sweep loop ---- */
+function sweep(){
+  STATE.sweeps++;
+  STATE.minutes += SWEEP_MINUTES;
+  const fresh = ingest(STATE.minutes);
+  const found = evaluate(fresh, STATE.minutes);
+  found.forEach(f=>{ if(!STATE.findings.some(x=>x.key === f.key)) STATE.findings.push(f); });
+  $("sweeps").textContent = String(STATE.sweeps);
+  $("state").textContent = found.length ? (found.length + " raised") : "watching";
+  renderClock();
+  renderDashboard(); renderFindings();
+}
+
+/* The header runs on the same compressed shift as the findings, so the two can't disagree. */
+function renderClock(){
+  const secs = STATE.minutes * 60 + (STATE.tick % SWEEP_SECONDS) * (SWEEP_MINUTES * 60 / SWEEP_SECONDS);
+  $("clock").textContent = hhmm(Math.floor(secs / 60)) + ":" + String(secs % 60).padStart(2,"0");
+}
+function tick(){
+  if(!STATE.running) return;
+  STATE.tick++;
+  const into = STATE.tick % SWEEP_SECONDS;
+  const left = SWEEP_SECONDS - into;
+  $("next").textContent = "0:" + String(left).padStart(2,"0");
+  $("barFill").style.width = (into / SWEEP_SECONDS * 100) + "%";
+  if(into === 0) sweep();
+  renderClock();
+}
+
+/* ---- wiring ---- */
+function resetAll(){
+  STATE.tick = 0; STATE.sweeps = 0; STATE.minutes = 0;
+  STATE.execs = []; STATE.findings = []; STATE.sel = null;
+  STATE.dark = $("swDark").checked; STATE.darkFrom = 10;
+  STATE.deadFrom = $("swDead").checked ? 0 : null;
+  STATE.running = true;
+  $("pause").textContent = "Pause";
+  $("bar").classList.remove("paused");
+  $("dossierPanel").hidden = true;
+  $("sweeps").textContent = "0";
+  renderClock();
+  $("state").textContent = "watching";
+  renderDashboard(); renderFindings();
+}
+$("sweepNow").addEventListener("click", ()=>{ STATE.tick = 0; sweep(); });
+$("pause").addEventListener("click", ()=>{
+  STATE.running = !STATE.running;
+  $("pause").textContent = STATE.running ? "Pause" : "Resume";
+  $("bar").classList.toggle("paused", !STATE.running);
+  $("state").textContent = STATE.running ? "watching" : "paused";
+});
+$("reset").addEventListener("click", resetAll);
+["swDark","swDead"].forEach(id=>$(id).addEventListener("change", resetAll));
+$("calRun").addEventListener("click", ()=>{
+  let n = 0;
+  const step = ()=>{
+    n += 5;
+    if(n > 215) n = 215;
+    $("calBar").style.width = (n / 215 * 100) + "%";
+    $("calNum").textContent = n + " false fires";
+    if(n < 215) setTimeout(step, 16);
+  };
+  step();
+});
+
+resetAll();
+setInterval(tick, 1000);
+tick();
+</script>
+<footer style="padding:18px 14px;font:13px/1.5 system-ui,sans-serif;color:#9aa4af;background:#07090c">Made-up data. <a href="/" style="color:#7cc8ff">Donald Cox</a> · <a href="/donald-cox-resume.pdf" style="color:#7cc8ff">Resume</a> · <a href="mailto:don@doncox.ai" style="color:#7cc8ff">don@doncox.ai</a> · <a href="/privacy/" style="color:#7cc8ff">Privacy</a> · <a href="/terms/" style="color:#7cc8ff">Terms</a></footer>
+</body>
+</html>

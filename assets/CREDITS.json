@@ -1,0 +1,50 @@
+[
+  {
+    "file": "assets/favicon.svg",
+    "kind": "own",
+    "source": "Drawn for this site",
+    "license": "own work"
+  },
+  {
+    "file": "assets/og.jpg",
+    "kind": "own",
+    "source": "Designed for this site from its own comet map, fonts and emblem",
+    "license": "own work"
+  },
+  {
+    "file": "favicon.ico",
+    "kind": "own",
+    "source": "Emblem designed for this site",
+    "license": "own work"
+  },
+  {
+    "file": "apple-touch-icon.png",
+    "kind": "own",
+    "source": "Emblem designed for this site",
+    "license": "own work"
+  },
+  {
+    "file": "assets/icon-48.png",
+    "kind": "own",
+    "source": "Emblem designed for this site",
+    "license": "own work"
+  },
+  {
+    "file": "assets/icon-96.png",
+    "kind": "own",
+    "source": "Emblem designed for this site",
+    "license": "own work"
+  },
+  {
+    "file": "assets/icon-192.png",
+    "kind": "own",
+    "source": "Emblem designed for this site",
+    "license": "own work"
+  },
+  {
+    "file": "assets/icon-512.png",
+    "kind": "own",
+    "source": "Emblem designed for this site",
+    "license": "own work"
+  }
+]

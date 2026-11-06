@@ -1,0 +1,837 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dock-to-Storefront Intake | Donald Cox</title>
+<style>
+/* ==== NB SHARED TOKENS v1 ====================================================
+   Keep this block byte-identical across all five demo files. If it changes,
+   run demos/sync-shared.py so every demo stays in step.
+   ========================================================================== */
+:root{
+  --ink:#0d1014;
+  --panel:#141920;
+  --panel-2:#1a212a;
+  --well:#0a0d11;
+  --rule:#28323d;
+  --rule-soft:#1f2731;
+  --text:#d5dde5;
+  --text-hi:#f2f6fa;
+  --dim:#8f9ba8;
+  --dimmer:#7f8b98;
+  --copper:#c9773c;
+  --copper-hi:#e69a55;
+  --copper-dim:#7a4823;
+  --ok:#6f9b6a;
+  --warn:#c2a03c;
+  --stop:#de6653;
+  --model:#7196b8;
+  --code:#c9773c;
+  --mono:ui-monospace,"SF Mono",SFMono-Regular,"Cascadia Mono",Menlo,Consolas,"Liberation Mono",monospace;
+  --serif:"Iowan Old Style","Palatino Linotype",Palatino,"Book Antiqua",Georgia,serif;
+  --t-fast:120ms cubic-bezier(.2,0,0,1);
+  --t-mech:260ms cubic-bezier(.33,0,.15,1);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--ink);
+  color:var(--text);
+  font-family:var(--mono);
+  font-size:14px;
+  line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+  background-image:
+    repeating-linear-gradient(0deg,rgba(255,255,255,.014) 0 1px,transparent 1px 3px),
+    radial-gradient(120% 80% at 50% -10%,rgba(201,119,60,.07),transparent 60%);
+}
+.wrap{max-width:1240px;margin:0 auto;padding:20px 18px 64px}
+.lab{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim)}
+.num{font-variant-numeric:tabular-nums}
+.prose{font-family:var(--serif);font-size:15.5px;line-height:1.62;color:var(--text)}
+.prose p{margin:0 0 .85em}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+.btn{
+  font-family:var(--mono);font-size:11px;letter-spacing:.13em;text-transform:uppercase;
+  padding:9px 16px;border:1px solid var(--rule);background:var(--panel-2);color:var(--text);
+  transition:border-color var(--t-fast),background var(--t-fast),color var(--t-fast);
+}
+.btn:hover:not(:disabled){border-color:var(--copper);color:var(--text-hi)}
+.btn:focus-visible{outline:2px solid var(--copper-hi);outline-offset:2px}
+.btn:disabled{opacity:.35;cursor:not-allowed}
+.btn-p{background:var(--copper);border-color:var(--copper);color:#160d06;font-weight:700}
+.btn-p:hover:not(:disabled){background:var(--copper-hi);border-color:var(--copper-hi);color:#160d06}
+.panel{background:var(--panel);border:1px solid var(--rule-soft)}
+.panel-hd{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  padding:9px 14px;border-bottom:1px solid var(--rule-soft);background:var(--panel-2);
+}
+.rule{height:1px;background:var(--rule-soft);border:0;margin:0}
+.sw{display:inline-flex;align-items:center;gap:9px;cursor:pointer;user-select:none}
+.sw input{position:absolute;opacity:0;width:0;height:0}
+.sw .track{
+  width:34px;height:16px;background:var(--well);border:1px solid var(--rule);
+  position:relative;flex:none;transition:border-color var(--t-fast),background var(--t-fast);
+}
+.sw .track::after{
+  content:"";position:absolute;top:1px;left:1px;width:12px;height:12px;background:var(--dimmer);
+  transition:transform var(--t-mech),background var(--t-mech);
+}
+.sw input:checked + .track{border-color:var(--copper-dim);background:#1b120a}
+.sw input:checked + .track::after{transform:translateX(16px);background:var(--copper)}
+.sw input:focus-visible + .track{outline:2px solid var(--copper-hi);outline-offset:2px}
+.sw .txt{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim)}
+.sw input:checked ~ .txt{color:var(--text)}
+.banner{
+  border:1px solid var(--rule-soft);border-left:2px solid var(--copper-dim);
+  background:linear-gradient(90deg,rgba(201,119,60,.06),transparent 60%);
+  padding:9px 14px;font-size:11.5px;color:var(--dim);margin-bottom:14px;line-height:1.6;
+}
+details.drawer{border:1px solid var(--rule-soft);background:var(--panel);margin-top:18px}
+details.drawer > summary{
+  padding:11px 14px;cursor:pointer;font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--dim);list-style:none;display:flex;align-items:center;gap:10px;
+}
+details.drawer > summary::-webkit-details-marker{display:none}
+details.drawer > summary::before{content:"+";color:var(--copper);font-weight:700}
+details.drawer[open] > summary::before{content:"-"}
+details.drawer > summary:hover{color:var(--text)}
+.drawer-body{padding:4px 18px 20px;border-top:1px solid var(--rule-soft)}
+@media (max-width:720px){ .wrap{padding:14px 12px 48px} }
+/* ==== END NB SHARED TOKENS ================================================ */
+
+.mast{display:flex;align-items:baseline;justify-content:space-between;gap:16px;flex-wrap:wrap;border-bottom:1px solid var(--rule);padding-bottom:10px;margin-bottom:14px}
+.mast h1{font-size:15px;letter-spacing:.2em;text-transform:uppercase;margin:0;font-weight:700;color:var(--text-hi)}
+.mast h1 span{color:var(--copper)}
+.readout{display:flex;align-items:center;gap:14px;font-size:11px;color:var(--dim);letter-spacing:.1em}
+.readout b{color:var(--text);font-weight:400}
+
+.stage{display:grid;grid-template-columns:minmax(0,340px) minmax(0,1fr);gap:14px;align-items:start}
+@media (max-width:900px){ .stage{grid-template-columns:1fr} }
+
+.tray{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;padding:12px;max-height:520px;overflow-y:auto}
+.tile{position:relative;background:var(--well);border:1px solid var(--rule);aspect-ratio:4/3;overflow:hidden}
+.tile svg{display:block;width:100%;height:100%}
+.tile .stamp{
+  position:absolute;left:0;right:0;bottom:0;padding:2px 4px;background:rgba(10,13,17,.88);
+  font-size:8.5px;letter-spacing:.06em;color:var(--model);line-height:1.35;
+}
+.tile .stamp.none{color:var(--stop)}
+.tile.pending{opacity:.32}
+.tile.reading{outline:1px solid var(--copper);outline-offset:-1px}
+.tile.dead{outline:1px solid var(--stop);outline-offset:-1px}
+
+.lotrow{display:grid;grid-template-columns:1fr auto auto;gap:10px;align-items:center;padding:9px 14px;border-bottom:1px solid var(--rule-soft)}
+.lotrow:last-child{border-bottom:0}
+.lotcode{font-size:12.5px;color:var(--text-hi);letter-spacing:.05em}
+.lotmeta{font-size:10.5px;color:var(--dim)}
+.pill{font-size:9px;letter-spacing:.12em;text-transform:uppercase;padding:2px 7px;border:1px solid var(--rule);color:var(--dim)}
+.pill.keep{border-color:var(--ok);color:var(--ok)}
+.pill.drop{border-color:var(--stop);color:var(--stop)}
+.pill.bleed{border-color:var(--warn);color:var(--warn)}
+.lotnote{grid-column:1 / -1;font-size:10.5px;color:var(--dim);border-left:2px solid var(--rule);padding:4px 9px;background:var(--panel-2);line-height:1.55}
+.lotnote.warn{border-left-color:var(--warn);color:#dcc684}
+.lotnote.stop{border-left-color:var(--stop);color:#e2a79f}
+.lotnote.ok{border-left-color:var(--ok);color:#a9c9a4}
+
+.xref th,.xref td{padding-left:12px;padding-right:12px;text-align:left}
+@media (max-width:640px){.xref{display:block;overflow-x:auto}.xref th,.xref td{padding-left:6px;padding-right:6px}}
+.xref td.agree{color:var(--ok)}
+.stage>*{min-width:0}
+.xref td.disagree{color:var(--stop);font-weight:700}
+
+.alarm{border:1px solid var(--stop);border-left:3px solid var(--stop);background:rgba(184,73,59,.08);padding:11px 14px;margin:12px 14px;font-size:11.5px;color:#e2a79f;line-height:1.6}
+.alarm b{color:var(--text-hi);font-weight:400;display:block;margin-bottom:4px}
+
+.dest{display:flex;gap:6px;flex-wrap:wrap}
+.dest button{font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;padding:5px 9px;border:1px solid var(--rule);color:var(--dim);background:var(--panel-2)}
+.dest button:hover{border-color:var(--copper);color:var(--text)}
+.dest button[aria-pressed="true"]{border-color:var(--copper);background:var(--copper);color:#160d06;font-weight:700}
+
+.commit{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media (max-width:760px){ .commit{grid-template-columns:1fr} }
+.ledger{padding:12px 14px;font-size:11.5px}
+.ledger .row{display:flex;justify-content:space-between;gap:10px;padding:5px 0;border-bottom:1px solid var(--rule-soft);opacity:0;transform:translateY(-3px);animation:land 320ms cubic-bezier(.33,0,.15,1) forwards}
+@keyframes land{to{opacity:1;transform:none}}
+.ledger .row:last-child{border-bottom:0}
+.ledger .row b{color:var(--text-hi);font-weight:400}
+.ledger .row span{color:var(--dim);white-space:nowrap}
+.ledger{min-width:0}
+@media (max-width:720px){
+  .ledger .row{flex-wrap:wrap}
+  .ledger .row span{white-space:normal}
+}
+.ledger .empty{color:var(--dimmer);font-size:11px}
+.switches{display:flex;flex-wrap:wrap;gap:10px 24px;padding:12px 14px}
+.totals{display:flex;gap:20px;flex-wrap:wrap;padding:10px 14px;border-top:1px solid var(--rule-soft)}
+.totals div{font-size:11px;color:var(--dim)}
+.totals b{display:block;font-size:17px;color:var(--copper-hi);letter-spacing:.05em}
+.scrollx{overflow-x:auto}
+</style>
+<meta name="description" content="Interactive demo: photograph a pallet and get a lot-traced listing and a booked receipt, checked three ways against the packing list. Runs on invented data.">
+<link rel="canonical" href="https://doncox.ai/demos/01-intake.html">
+<meta name="theme-color" content="#07090c">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://doncox.ai/demos/01-intake.html">
+<meta property="og:title" content="Dock-to-Storefront Intake | Donald Cox">
+<meta property="og:description" content="Interactive demo: photograph a pallet and get a lot-traced listing and a booked receipt, checked three ways against the packing list. Runs on invented data.">
+<meta property="og:site_name" content="Donald Cox">
+<meta property="og:image" content="https://doncox.ai/assets/og.jpg">
+<meta property="og:image:width" content="2400">
+<meta property="og:image:height" content="1260">
+<meta property="og:image:alt" content="Donald Cox: I design and build the AI systems that run businesses.">
+<meta name="twitter:image" content="https://doncox.ai/assets/og.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/favicon.ico" sizes="48x48">
+<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+</head>
+<body>
+<main>
+<div class="wrap">
+
+  <div class="banner">
+    Demonstration environment. Invented supplier, invented lot codes, synthetic photographs. It
+    reproduces the reconciliation logic of a system running in production at a manufacturer.
+    Timings are compressed: reading a real pallet takes about 47 seconds for 19 images.
+  </div>
+
+  <div class="mast">
+    <h1>Northbeam <span>Precision</span> / Receiving Dock</h1>
+    <div class="readout">
+      <span>INTAKE</span><b class="num" id="scanid">SCAN-0000</b>
+      <span id="phase" style="color:var(--copper-hi)">idle</span>
+    </div>
+  </div>
+
+  <div class="stage">
+    <section class="panel">
+      <div class="panel-hd">
+        <span class="lab">Frames</span>
+        <span class="lab" id="frameState">13 uploaded</span>
+      </div>
+      <div class="tray" id="tray"></div>
+      <div class="capbar" style="display:flex;gap:9px;padding:0 12px 12px;flex-wrap:wrap">
+        <button class="btn btn-p" id="readBtn">Read pallet</button>
+        <button class="btn" id="resetBtn">Reset</button>
+      </div>
+    </section>
+
+    <div>
+      <section class="panel">
+        <div class="panel-hd">
+          <span class="lab">Detected lots</span>
+          <span class="lab" id="lotCount"></span>
+        </div>
+        <div id="lots"></div>
+        <div id="alarms"></div>
+        <div class="totals" id="totals"></div>
+      </section>
+
+      <section class="panel" style="margin-top:14px">
+        <div class="panel-hd">
+          <span class="lab">Three way cross reference</span>
+          <span class="lab">the printed list is ground truth</span>
+        </div>
+        <div class="scrollx" style="padding:4px 14px 12px">
+          <table class="grid xref">
+            <thead><tr><th>Product</th><th>Packing list</th><th>Pallet side</th><th>Close ups</th><th>Verdict</th></tr></thead>
+            <tbody id="xref"><tr><td colspan="5" style="color:var(--dimmer)">Nothing read yet.</td></tr></tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <section class="panel" style="margin-top:14px">
+    <div class="panel-hd">
+      <span class="lab">Approve</span>
+      <span class="lab" id="approveState">locked until every frame is accounted for</span>
+    </div>
+    <div id="approve"></div>
+    <div style="padding:12px 14px;display:flex;gap:9px;flex-wrap:wrap;align-items:center">
+      <button class="btn btn-p" id="commitBtn" disabled>Commit approved lots</button>
+      <span class="lab" id="commitNote"></span>
+    </div>
+  </section>
+
+  <section class="panel" style="margin-top:14px">
+    <div class="panel-hd"><span class="lab">Commit</span><span class="lab">storefront and accounting, together</span></div>
+    <div class="commit">
+      <div class="ledger" id="storefront"><div class="lab" style="margin-bottom:8px">Storefront</div><div class="empty">Nothing listed.</div></div>
+      <div class="ledger" id="accounting" style="border-left:1px solid var(--rule-soft)"><div class="lab" style="margin-bottom:8px">Accounting</div><div class="empty">Nothing received.</div></div>
+    </div>
+  </section>
+
+  <section class="panel" style="margin-top:14px">
+    <div class="panel-hd"><span class="lab">Sabotage and engine switches</span><span class="lab">break it on purpose</span></div>
+    <div class="switches">
+      <label class="sw"><input type="checkbox" id="swBlank"><span class="track"></span><span class="txt">Blank one close up</span></label>
+      <label class="sw"><input type="checkbox" id="swLong"><span class="track"></span><span class="txt">Supplier switches to a longer lot format</span></label>
+    </div>
+    <hr class="rule">
+    <div class="switches">
+      <label class="sw"><input type="checkbox" id="enComplete" checked><span class="track"></span><span class="txt">Completeness rule, corrected</span></label>
+      <label class="sw"><input type="checkbox" id="enBleed" checked><span class="track"></span><span class="txt">Bleed guard</span></label>
+      <label class="sw"><input type="checkbox" id="enLenGuard" checked><span class="track"></span><span class="txt">SKU length guard</span></label>
+    </div>
+    <p id="switchNote" style="padding:0 14px 14px;margin:0;font-size:12px;color:var(--dim);line-height:1.65"></p>
+  </section>
+
+  <details class="drawer">
+    <summary>How this works</summary>
+    <div class="drawer-body">
+      <div class="prose">
+        <p><b>Shape.</b> A phone at the dock, a small capture app on the shop server, and four
+        chained workflows: read and reconcile, propose, approve, commit. 56 nodes, three webhooks
+        and a scheduled trigger. The cloud instance is kept as a deactivated standby, and it is
+        never active on both sides at once, because both would fire the commit trigger and create
+        duplicate listings.</p>
+
+        <p><b>The printed packing list is ground truth and the model is not.</b> The model identifies
+        and transcribes. It never decides how many. Counts anchor to the printed expected case count,
+        and three independent counts are compared: the paperwork, the pallet-side shots, and the
+        close-up set. Disagreement is surfaced, never resolved automatically. The operator's editable
+        count, checked against the list, is the authority, because multi-tier counting is not
+        deterministic and the same photographs can produce slightly different case counts run to run.</p>
+
+        <p><b>Completeness is the sharpest edge in the system.</b> Lot codes are printed with slashes
+        and stored with dashes, and the same supplier prints the same lot with and without a trailing
+        run group. A rule that is too strict throws away real lots. The worst defect in this system's
+        life was exactly that: an over-strict completeness check silently discarded entire real lots
+        with no error anywhere. The fix was a looser rule and a standing principle:
+        surface, do not resurrect. An automatic rescue of zeroed lots was tried and rejected, because
+        it resurrected edge-cropped bleed as phantom cases.</p>
+
+        <p><b>Bleed guard.</b> If a frame already produced a confident read, a partial read of a
+        different lot in that same frame is treated as bleed-over from the adjacent case and dropped.
+        Own-lot partials are never dropped. The honest limitation, published rather than hidden: two
+        different real lots in one photograph where the second is only partial will drop the partial
+        without surfacing it. Standard operating procedure is one lot per photograph, so it is rare.</p>
+
+        <p><b>Downstream name limits shape the design.</b> The accounting system
+        caps item names, and the connector that links storefront to accounting matches by exact name.
+        A generated SKU longer than the cap gets silently truncated, which merges distinct lots onto
+        one accounting item behind a green success message. That happened: ten distinct lots collapsed
+        onto five items. The fix is a canonical lot pattern proven against roughly 120 historical
+        items, plus a hard length guard that errors rather than truncating. Flip the guard off above
+        and watch the merge happen.</p>
+
+        <p><b>Verify the landing, do not trust the success message.</b> A read-only verification tool
+        walks the storefront parent product and enumerates its actual variations, rather than querying
+        by SKU, because a SKU query returns a hit even when the variation is attached to the wrong
+        parent.</p>
+
+        <p><b>Measured in production.</b> On the verified reference
+        intake: 14 lots, 36 cases, 180,000 units, read in 47 seconds from 19 images, 36 of 36 line
+        items matched against the printed slip, and an independent human re-read of every label
+        matched the pipeline lot for lot. First listing sold inside 75 minutes. By my own count, receiving went from three people to one on a phone, about an hour of combined work per pallet, estimated.</p>
+      </div>
+    </div>
+  </details>
+</div>
+
+</main>
+<script>
+"use strict";
+/* =========================================================================
+   Dock-to-Storefront Intake, demo. Invented supplier, invented lot codes.
+   All rendering is explicit DOM construction; no markup is built from strings.
+   ========================================================================= */
+
+const PRODUCTS = {
+  "ABR-050": { name:"Abrasive Disc 50 mm", parent:"Abrasive Discs 50 mm", packsPerCase:10, unitsPerPack:50, price:"89.20" },
+  "ABR-080": { name:"Abrasive Disc 80 mm", parent:"Abrasive Discs 80 mm", packsPerCase:10, unitsPerPack:50, price:"102.40" },
+  "ABR-120": { name:"Abrasive Disc 120 mm", parent:"Abrasive Discs 120 mm", packsPerCase:10, unitsPerPack:50, price:"124.00" }
+};
+
+/* The printed packing list. Ground truth, per product. */
+const PACKING_LIST = [
+  { product:"ABR-050", cases:4 },
+  { product:"ABR-080", cases:3 },
+  { product:"ABR-120", cases:3 }
+];
+
+/* The physical pallet. Each case carries one printed label.
+   printedLot is exactly what the label says, which is not always the full lot. */
+const CASES = [
+  { product:"ABR-050", lot:"L26-0417-A", printedLot:"L26-0417-A" },
+  { product:"ABR-050", lot:"L26-0417-A", printedLot:"L26-0417-A" },
+  { product:"ABR-050", lot:"L26-0417-B", printedLot:"L26-0417-B" },
+  { product:"ABR-050", lot:"L26-0417-B", printedLot:"L26-0417-B" },
+  { product:"ABR-080", lot:"L26-0419-A", printedLot:"L26-0419-A" },
+  { product:"ABR-080", lot:"L26-0419-A", printedLot:"L26-0419"   },  /* run group not printed */
+  { product:"ABR-080", lot:"L26-0421-A", printedLot:"L26-0421-A", bleedsInto:"L26-0419" },
+  { product:"ABR-120", lot:"L26-0422-A", printedLot:"L26-0422-A" },
+  { product:"ABR-120", lot:"L26-0422-A", printedLot:"L26-0422-A", blankable:true },
+  { product:"ABR-120", lot:"L26-0424-A", printedLot:"L26-0424-A" }
+];
+
+const SIDE_COUNTS = { "ABR-050":4, "ABR-080":3, "ABR-120":3 };
+/* When the supplier lengthens its lot format, the part that distinguishes two lots can
+   fall PAST the downstream name cap. Both of these truncate to the same 31 characters,
+   which is how ten distinct lots once collapsed onto five accounting records. */
+const LONG_LOT = { "L26-0417-A":"L26-0417-0442081-A", "L26-0417-B":"L26-0417-0442081-B" };
+
+const S = { phase:"idle", reads:null, lots:null, xref:null, dest:{}, committed:false, runId:0, scan:"SCAN-0000" };
+const $ = id => document.getElementById(id);
+
+/* ---- DOM helpers ---- */
+function el(tag, opts, kids){
+  const n = document.createElement(tag);
+  if(opts){
+    if(opts.cls) n.className = opts.cls;
+    if(opts.text != null) n.textContent = opts.text;
+    if(opts.style) n.setAttribute("style", opts.style);
+    if(opts.attrs) for(const k in opts.attrs) n.setAttribute(k, opts.attrs[k]);
+  }
+  if(kids) kids.forEach(c=>{ if(c) n.appendChild(typeof c === "string" ? document.createTextNode(c) : c); });
+  return n;
+}
+function clear(n){ while(n.firstChild) n.removeChild(n.firstChild); }
+function esc(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+function svgNode(str){
+  const doc = new DOMParser().parseFromString(str,"image/svg+xml");
+  if(doc.getElementsByTagName("parsererror").length) return el("div",{cls:"lab",text:"frame unavailable"});
+  return document.importNode(doc.documentElement,true);
+}
+
+/* ---- frame plan ---- */
+function buildFrames(){
+  const f = [{ kind:"slip" }];
+  Object.keys(SIDE_COUNTS).forEach(p => f.push({ kind:"side", product:p, cases:SIDE_COUNTS[p] }));
+  CASES.forEach((c,i)=> f.push({ kind:"close", caseIndex:i }));
+  return f;
+}
+const FRAMES = buildFrames();
+
+/* ---- synthetic photographs ---- */
+function lotShown(c){
+  if(!$("swLong").checked) return c.printedLot;
+  return LONG_LOT[c.lot] || c.printedLot;
+}
+function svgSlip(){
+  let rows = "";
+  PACKING_LIST.forEach((l,i)=>{
+    const p = PRODUCTS[l.product];
+    rows += '<text x="30" y="'+(96+i*20)+'" font-family="monospace" font-size="9.5" fill="#2b3038">'+esc(p.name)+'</text>'
+         +  '<text x="250" y="'+(96+i*20)+'" font-family="monospace" font-size="9.5" fill="#2b3038">'+esc(String(l.cases))+' CS</text>';
+  });
+  return '<svg viewBox="0 0 320 240" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="packing list">'
+    + '<rect width="320" height="240" fill="#0a0d11"/><rect x="16" y="12" width="288" height="216" fill="#d9d4c8"/>'
+    + '<rect x="16" y="12" width="288" height="24" fill="#c3bcab"/>'
+    + '<text x="30" y="29" font-family="monospace" font-size="11" fill="#2b3038">PACKING LIST</text>'
+    + '<text x="30" y="60" font-family="monospace" font-size="8.5" fill="#5c5748">DELIVERED PAGE 1 OF 1</text>'
+    + '<line x1="30" y1="76" x2="290" y2="76" stroke="#a8a091"/>'
+    + rows
+    + '<line x1="30" y1="190" x2="290" y2="190" stroke="#a8a091"/>'
+    + '<text x="30" y="208" font-family="monospace" font-size="8.5" fill="#7a7364">GROUND TRUTH FOR COUNTS</text>'
+    + '</svg>';
+}
+function svgSide(product, cases){
+  let body = '<rect width="320" height="240" fill="#0f1319"/><rect x="0" y="196" width="320" height="44" fill="#171c23"/>';
+  for(let i=0;i<cases;i++){
+    const y = 178 - i*40;
+    body += '<rect x="70" y="'+y+'" width="180" height="36" fill="#b9a98d" stroke="#8d7f68"/>'
+         +  '<rect x="78" y="'+(y+6)+'" width="60" height="24" fill="#efe9dc"/>';
+  }
+  body += '<text x="70" y="216" font-family="monospace" font-size="9" fill="#8b97a5">'+esc(product)+' PALLET SIDE</text>';
+  return '<svg viewBox="0 0 320 240" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="pallet side">'+body+'</svg>';
+}
+function svgClose(c, blank){
+  if(blank){
+    return '<svg viewBox="0 0 320 240" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="blank frame">'
+      + '<rect width="320" height="240" fill="#eceae4"/>'
+      + '<text x="160" y="126" text-anchor="middle" font-family="monospace" font-size="10" fill="#c9c6bd">.</text></svg>';
+  }
+  const p = PRODUCTS[c.product];
+  let body = '<rect width="320" height="240" fill="#0f1319"/>'
+    + '<rect x="26" y="30" width="268" height="180" fill="#b9a98d" stroke="#8d7f68"/>'
+    + '<rect x="44" y="52" width="232" height="136" fill="#efe9dc"/>'
+    + '<text x="58" y="80" font-family="monospace" font-size="11" fill="#22262d">NORTHBEAM</text>'
+    + '<text x="58" y="104" font-family="monospace" font-size="10" fill="#22262d">'+esc(p.name)+'</text>'
+    + '<text x="58" y="134" font-family="monospace" font-size="14" fill="#22262d">'+esc(lotShown(c))+'</text>'
+    + '<text x="58" y="158" font-family="monospace" font-size="9" fill="#5c5748">'+esc(String(p.packsPerCase))+' PACKS PER CASE</text>';
+  if(c.bleedsInto){
+    body += '<rect x="0" y="30" width="20" height="180" fill="#b9a98d" stroke="#8d7f68"/>'
+         +  '<text x="3" y="130" font-family="monospace" font-size="7" fill="#22262d">'+esc(c.bleedsInto)+'</text>';
+  }
+  return '<svg viewBox="0 0 320 240" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="case label close up">'+body+'</svg>';
+}
+
+/* ---- the reader ---- */
+function readFrames(){
+  const blank = $("swBlank").checked;
+  return FRAMES.map((f,i)=>{
+    if(f.kind === "slip") return { kind:"slip", frame:i, list:PACKING_LIST.slice() };
+    if(f.kind === "side") return { kind:"side", frame:i, product:f.product, cases:f.cases };
+    const c = CASES[f.caseIndex];
+    if(blank && c.blankable) return { kind:"close", frame:i, product:null, lot:null, partials:[], dead:true };
+    const partials = c.bleedsInto ? [c.bleedsInto] : [];
+    return { kind:"close", frame:i, product:c.product, lot:lotShown(c), partials:partials, dead:false };
+  });
+}
+
+/* ---- aggregation ----
+   A printed code is complete when it carries the date group and a run group, OR when it is a
+   date-only code that still ends in enough digits to be a real lot rather than a fragment.
+   The strict version rejects the second case, which is how whole real lots were silently lost.
+------------------------------------------------------------------------------------------- */
+function isCompleteLot(code, strict){
+  if(!code) return false;
+  const parts = String(code).split("-");
+  if(parts.length >= 3) return true;                 /* date group plus run group */
+  if(strict) return false;                           /* the defect: everything else dropped */
+  const tail = parts[parts.length-1] || "";
+  return parts.length === 2 && /^[0-9]{4,}$/.test(tail);   /* real, just printed short */
+}
+function aggregate(reads){
+  const strict = !$("enComplete").checked;
+  const bleedGuard = $("enBleed").checked;
+  const lots = new Map();
+  const notes = [];
+  const dead = [];
+
+  reads.forEach(r=>{
+    if(r.kind !== "close") return;
+    if(r.dead){ dead.push(r.frame); return; }
+
+    const complete = isCompleteLot(r.lot, strict);
+    if(!complete){
+      notes.push({ lot:r.lot, k:"stop",
+        t:"Lot " + r.lot + " was read from a real case label and judged an incomplete fragment, so the whole case was discarded. With the corrected rule this is kept. This class of defect loses entire lots and reports nothing." });
+      return;
+    }
+    const key = canonicalLot(r.lot);
+    if(!lots.has(key)) lots.set(key,{ lot:key, product:r.product, cases:0, frames:[], flags:[] });
+    const L = lots.get(key);
+    L.cases++; L.frames.push(r.frame);
+
+    r.partials.forEach(pl=>{
+      const pkey = canonicalLot(pl);
+      if(bleedGuard){
+        notes.push({ lot:pkey, k:"ok",
+          t:"A partial read of " + pkey + " appeared in a frame that already held a confident read of " + key + ". Treated as bleed from the adjacent case and dropped. Own-lot partials are never dropped." });
+      } else {
+        if(!lots.has(pkey)) lots.set(pkey,{ lot:pkey, product:r.product, cases:0, frames:[], flags:[] });
+        const P = lots.get(pkey);
+        P.cases++; P.frames.push(r.frame);
+        P.flags.push("phantom");
+        notes.push({ lot:pkey, k:"warn",
+          t:"Bleed guard is off. The edge of a neighboring case in another frame was counted as its own case, so " + pkey + " now carries a phantom case that is not on the pallet." });
+      }
+    });
+  });
+
+  return { lots:[...lots.values()], notes:notes, dead:dead };
+}
+/* Two-segment codes and three-segment codes name the same lot when the third segment is a run
+   group the supplier sometimes omits. Canonical form is the date group plus run group. */
+function canonicalLot(code){
+  const p = String(code).split("-");
+  /* A two segment code is the same lot as its three segment sibling: the supplier
+     prints the run group on some cases and not on others. Everything longer is kept
+     WHOLE. Trimming a longer code here would be a silent merge of distinct lots,
+     which is the exact defect the length guard downstream exists to catch. */
+  if(p.length === 2) return p[0] + "-" + p[1] + "-A";
+  return p.join("-");
+}
+
+/* ---- three way cross reference ---- */
+function crossRef(reads, agg){
+  const list = {}, side = {}, close = {};
+  PACKING_LIST.forEach(l=> list[l.product] = l.cases);
+  reads.forEach(r=>{ if(r.kind === "side") side[r.product] = r.cases; });
+  agg.lots.forEach(L=>{ close[L.product] = (close[L.product]||0) + L.cases; });
+  return Object.keys(list).map(p=>{
+    const a = list[p], b = side[p]||0, c = close[p]||0;
+    return { product:p, list:a, side:b, close:c, agree: (a===b && b===c) };
+  });
+}
+
+/* ---- SKU generation with the length guard ---- */
+const NAME_CAP = 31;
+function genSku(product, lot){
+  return "NB-" + product + "-STD-" + lot;
+}
+function commitPlan(){
+  const guard = $("enLenGuard").checked;
+  const items = [];
+  const problems = [];
+  const byName = new Map();
+  S.lots.forEach(L=>{
+    if(S.dest[L.lot] !== "sell" && S.dest[L.lot] !== "internal") return;
+    const sku = genSku(L.product, L.lot);
+    if(sku.length > NAME_CAP){
+      if(guard){
+        problems.push({ k:"stop", t:"Generated name " + sku + " is " + sku.length + " characters against a " + NAME_CAP + " character cap downstream. The guard errors instead of truncating, so nothing is written and the lot is held for a human." });
+        return;
+      }
+      const truncated = sku.slice(0, NAME_CAP);
+      if(byName.has(truncated)){
+        const first = byName.get(truncated);
+        first.merged.push(L.lot);
+        problems.push({ k:"stop", t:"Silent merge. " + L.lot + " and " + first.lot + " both truncate to " + truncated + ", so the second one found the first and posted against it. Two distinct lots are now one record, behind a green success message." });
+        return;
+      }
+      const rec = { lot:L.lot, product:L.product, sku:truncated, cases:L.cases, dest:S.dest[L.lot], merged:[], truncated:true };
+      byName.set(truncated, rec); items.push(rec);
+      problems.push({ k:"warn", t:"Name truncated to " + truncated + " with the guard off. The listing looks correct and the accounting link is now wrong." });
+      return;
+    }
+    const rec = { lot:L.lot, product:L.product, sku:sku, cases:L.cases, dest:S.dest[L.lot], merged:[], truncated:false };
+    byName.set(sku, rec); items.push(rec);
+  });
+  return { items:items, problems:problems };
+}
+
+/* ---- render ---- */
+function renderTray(){
+  const t = $("tray"); clear(t);
+  const blank = $("swBlank").checked;
+  FRAMES.forEach((f,i)=>{
+    const r = S.reads ? S.reads[i] : null;
+    const tile = el("div",{cls:"tile" + (r ? (r.dead ? " dead" : "") : " pending")});
+    let svg;
+    if(f.kind === "slip") svg = svgSlip();
+    else if(f.kind === "side") svg = svgSide(f.product, f.cases);
+    else svg = svgClose(CASES[f.caseIndex], blank && CASES[f.caseIndex].blankable);
+    tile.appendChild(svgNode(svg));
+    if(r){
+      let txt, cls = "stamp";
+      if(r.kind === "slip") txt = "list read";
+      else if(r.kind === "side") txt = r.product + "  " + r.cases + " cs";
+      else if(r.dead){ txt = "no lot read"; cls = "stamp none"; }
+      else txt = r.lot;
+      tile.appendChild(el("span",{cls:cls,text:txt}));
+    }
+    t.appendChild(tile);
+  });
+  $("frameState").textContent = FRAMES.length + " uploaded";
+}
+
+function renderLots(){
+  const box = $("lots"); clear(box);
+  if(!S.lots){
+    box.appendChild(el("div",{cls:"lotrow",style:"color:var(--dimmer);font-size:12px"},["Nothing read yet."]));
+    $("lotCount").textContent = "";
+    clear($("totals"));
+    return;
+  }
+  S.lots.forEach(L=>{
+    const p = PRODUCTS[L.product];
+    const row = el("div",{cls:"lotrow"});
+    const left = el("div");
+    left.appendChild(el("div",{cls:"lotcode",text:L.lot}));
+    left.appendChild(el("div",{cls:"lotmeta",text:p.name + " · frames " + L.frames.map(f=>f+1).join(", ")}));
+    row.appendChild(left);
+    row.appendChild(el("span",{cls:"lotmeta num",text:L.cases + " case" + (L.cases===1?"":"s")}));
+    row.appendChild(el("span",{cls:"pill " + (L.flags.indexOf("phantom")>=0 ? "bleed" : "keep"),
+      text: L.flags.indexOf("phantom")>=0 ? "phantom" : "kept"}));
+    box.appendChild(row);
+  });
+  S.notes.forEach(n=>{
+    box.appendChild(el("div",{cls:"lotnote " + n.k, text:n.t}));
+  });
+  $("lotCount").textContent = S.lots.length + " lots";
+
+  const cases = S.lots.reduce((a,L)=>a+L.cases,0);
+  const packs = S.lots.reduce((a,L)=>a+L.cases*PRODUCTS[L.product].packsPerCase,0);
+  const units = S.lots.reduce((a,L)=>a+L.cases*PRODUCTS[L.product].packsPerCase*PRODUCTS[L.product].unitsPerPack,0);
+  const tot = $("totals"); clear(tot);
+  [["lots",S.lots.length],["cases",cases],["packs",packs],["units",units.toLocaleString("en-US")]].forEach(([k,v])=>{
+    const d = el("div"); d.appendChild(el("b",{cls:"num",text:String(v)})); d.appendChild(document.createTextNode(k)); tot.appendChild(d);
+  });
+}
+
+function renderAlarms(){
+  const box = $("alarms"); clear(box);
+  if(!S.reads) return;
+  if(S.dead.length){
+    const a = el("div",{cls:"alarm"});
+    a.appendChild(el("b",{text:"Reconciliation: " + S.dead.length + " frame produced no lot"}));
+    a.appendChild(document.createTextNode(
+      "Frame " + S.dead.map(f=>f+1).join(", ") + " was submitted and read back nothing. That is a case that exists on the pallet and does not exist in this intake. Approval is blocked until it is re-shot. A blank page also weighs a fraction of a real label shot, which is a cheap pre-check."));
+    const b = el("div",{style:"margin-top:9px"});
+    const btn = el("button",{cls:"btn",text:"Re-shoot that frame"});
+    btn.addEventListener("click", ()=>{
+      $("swBlank").checked = false;
+      renderTray();
+      doRead(true);
+    });
+    b.appendChild(btn);
+    a.appendChild(b);
+    box.appendChild(a);
+  }
+}
+
+function renderXref(){
+  const tb = $("xref"); clear(tb);
+  if(!S.xref){
+    tb.appendChild(el("tr",{},[el("td",{attrs:{colspan:"5"},style:"color:var(--dimmer)",text:"Nothing read yet."})]));
+    return;
+  }
+  S.xref.forEach(x=>{
+    const tr = el("tr");
+    tr.appendChild(el("td",{text:PRODUCTS[x.product].name}));
+    tr.appendChild(el("td",{cls:"num",text:String(x.list)}));
+    tr.appendChild(el("td",{cls:"num " + (x.side===x.list?"agree":"disagree"),text:String(x.side)}));
+    tr.appendChild(el("td",{cls:"num " + (x.close===x.list?"agree":"disagree"),text:String(x.close)}));
+    tr.appendChild(el("td",{cls:x.agree?"agree":"disagree",text:x.agree?"agree":"discrepancy"}));
+    tb.appendChild(tr);
+  });
+}
+
+function renderApprove(){
+  const box = $("approve"); clear(box);
+  const blocked = S.dead.length > 0 || !S.lots;
+  if(!S.lots){
+    box.appendChild(el("div",{style:"padding:12px 14px;color:var(--dimmer);font-size:12px",text:"Read the pallet first."}));
+    $("approveState").textContent = "locked until the pallet is read";
+    $("commitBtn").disabled = true;
+    return;
+  }
+  if(blocked){
+    $("approveState").textContent = "blocked: a frame produced no lot";
+    box.appendChild(el("div",{style:"padding:12px 14px;color:#e2a79f;font-size:12px",
+      text:"Approval is blocked while a submitted frame is unaccounted for. Re-shoot it above."}));
+    $("commitBtn").disabled = true;
+    return;
+  }
+  $("approveState").textContent = "choose a destination per lot";
+  S.lots.forEach(L=>{
+    const row = el("div",{cls:"lotrow"});
+    const left = el("div");
+    left.appendChild(el("div",{cls:"lotcode",text:L.lot}));
+    left.appendChild(el("div",{cls:"lotmeta",text:PRODUCTS[L.product].name + " · " + L.cases + " case" + (L.cases===1?"":"s")}));
+    row.appendChild(left);
+    const d = el("div",{cls:"dest"});
+    [["sell","Sell"],["internal","Internal use"],["hold","Hold"],["reject","Reject"]].forEach(([k,label])=>{
+      const b = el("button",{text:label,attrs:{ "aria-pressed": String(S.dest[L.lot]===k) }});
+      b.addEventListener("click", ()=>{ S.dest[L.lot] = k; renderApprove(); updateCommitState(); });
+      d.appendChild(b);
+    });
+    row.appendChild(d);
+    row.appendChild(el("span",{cls:"lotmeta",text:""}));
+    box.appendChild(row);
+  });
+  updateCommitState();
+}
+function updateCommitState(){
+  const chosen = S.lots ? S.lots.filter(L=>S.dest[L.lot]).length : 0;
+  const total = S.lots ? S.lots.length : 0;
+  const ready = total > 0 && chosen === total && S.dead.length === 0;
+  $("commitBtn").disabled = !ready || S.committed;
+  $("commitNote").textContent = total ? (chosen + " of " + total + " lots given a destination") : "";
+}
+
+function renderCommit(plan){
+  const sf = $("storefront"), ac = $("accounting");
+  clear(sf); clear(ac);
+  sf.appendChild(el("div",{cls:"lab",style:"margin-bottom:8px",text:"Storefront"}));
+  ac.appendChild(el("div",{cls:"lab",style:"margin-bottom:8px",text:"Accounting"}));
+
+  const listed = plan.items.filter(i=>i.dest === "sell");
+  if(!listed.length) sf.appendChild(el("div",{cls:"empty",text:"Nothing listed."}));
+  listed.forEach((i,n)=>{
+    const row = el("div",{cls:"row",style:"animation-delay:" + (n*70) + "ms"});
+    const l = el("span");
+    l.appendChild(el("b",{text:i.sku}));
+    row.appendChild(l);
+    row.appendChild(el("span",{text:"added to " + PRODUCTS[i.product].parent + " lot list"}));
+    sf.appendChild(row);
+  });
+
+  if(!plan.items.length) ac.appendChild(el("div",{cls:"empty",text:"Nothing received."}));
+  plan.items.forEach((i,n)=>{
+    const row = el("div",{cls:"row",style:"animation-delay:" + (n*70) + "ms"});
+    const l = el("span");
+    l.appendChild(el("b",{text:i.sku}));
+    if(i.merged.length) l.appendChild(document.createTextNode("  merged: " + i.merged.join(", ")));
+    row.appendChild(l);
+    row.appendChild(el("span",{text:i.cases + " cs received"}));
+    ac.appendChild(row);
+  });
+
+  plan.problems.forEach(p=>{
+    ac.appendChild(el("div",{cls:"lotnote " + p.k, style:"margin-top:8px", text:p.t}));
+  });
+}
+
+function switchNote(){
+  const off = [];
+  if(!$("enComplete").checked) off.push("the corrected completeness rule");
+  if(!$("enBleed").checked) off.push("the bleed guard");
+  if(!$("enLenGuard").checked) off.push("the SKU length guard");
+  $("switchNote").textContent = off.length
+    ? "Running without " + off.join(", ") + ". Each of these was a real production defect before it was a switch. Read the pallet again to see what changes."
+    : "Engine at current production configuration. Turn something off and read the pallet again to reproduce a defect that actually shipped.";
+}
+
+/* ---- flow ---- */
+function resetAll(){
+  S.runId++;
+  S.phase = "idle"; S.reads = null; S.lots = null; S.notes = []; S.dead = []; S.xref = null;
+  S.dest = {}; S.committed = false;
+  $("phase").textContent = "idle";
+  $("scanid").textContent = "SCAN-0000";
+  renderTray(); renderLots(); renderAlarms(); renderXref(); renderApprove();
+  renderCommit({ items:[], problems:[] });
+  switchNote();
+}
+function doRead(keepScan){
+  const myRun = ++S.runId;
+  const live = () => myRun === S.runId;
+  S.committed = false;
+  if(!keepScan) S.scan = "SCAN-" + String(1000 + Math.floor(FRAMES.length * 7)).slice(0,4);
+  $("scanid").textContent = S.scan;
+  $("phase").textContent = "reading";
+  $("readBtn").disabled = true;
+  const reads = readFrames();
+  S.reads = [];
+  let i = 0;
+  const step = () => {
+    if(!live()){ $("readBtn").disabled = false; return; }
+    if(i >= reads.length){
+      const agg = aggregate(S.reads);
+      S.lots = agg.lots; S.notes = agg.notes; S.dead = agg.dead;
+      S.xref = crossRef(S.reads, agg);
+      S.phase = "read";
+      $("phase").textContent = "read";
+      $("readBtn").disabled = false;
+      renderLots(); renderAlarms(); renderXref(); renderApprove();
+      return;
+    }
+    S.reads[i] = reads[i];
+    renderTray();
+    i++;
+    setTimeout(step, 90);
+  };
+  step();
+}
+
+/* ---- wiring ---- */
+$("readBtn").addEventListener("click", ()=>doRead(false));
+$("resetBtn").addEventListener("click", resetAll);
+$("commitBtn").addEventListener("click", ()=>{
+  const plan = commitPlan();
+  S.committed = true;
+  $("commitBtn").disabled = true;
+  $("phase").textContent = "committed";
+  renderCommit(plan);
+});
+["swBlank","swLong"].forEach(id=>$(id).addEventListener("change", ()=>{
+  renderTray();
+  if(S.reads){ resetAll(); $("phase").textContent = "pallet changed, read again"; }
+}));
+["enComplete","enBleed","enLenGuard"].forEach(id=>$(id).addEventListener("change", ()=>{
+  switchNote();
+  if(S.reads){ resetAll(); $("phase").textContent = "engine changed, read again"; }
+}));
+
+resetAll();
+</script>
+<footer style="padding:18px 14px;font:13px/1.5 system-ui,sans-serif;color:#9aa4af;background:#07090c">Made-up data. <a href="/" style="color:#7cc8ff">Donald Cox</a> · <a href="/donald-cox-resume.pdf" style="color:#7cc8ff">Resume</a> · <a href="mailto:don@doncox.ai" style="color:#7cc8ff">don@doncox.ai</a> · <a href="/privacy/" style="color:#7cc8ff">Privacy</a> · <a href="/terms/" style="color:#7cc8ff">Terms</a></footer>
+</body>
+</html>

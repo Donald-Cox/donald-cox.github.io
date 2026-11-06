@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Five systems, one shop floor | Donald Cox</title>
+<meta name="description" content="How five AI automation systems I run at a precision manufacturer fit together, from the receiving dock to the shipping bench.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Five systems, one shop floor | Donald Cox">
+<meta property="og:description" content="How five AI automation systems I run at a precision manufacturer fit together, from the receiving dock to the shipping bench.">
+<link rel="icon" href="/favicon.ico" sizes="48x48">
+<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/assets/icon-192.png" type="image/png" sizes="192x192">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="manifest" href="/site.webmanifest">
+<meta name="theme-color" content="#07090c">
+<link rel="stylesheet" href="/assets/site.css">
+<link rel="canonical" href="https://doncox.ai/work/operations-platform/">
+<meta property="og:url" content="https://doncox.ai/work/operations-platform/">
+<meta property="og:image" content="https://doncox.ai/assets/og.jpg">
+<meta property="og:site_name" content="Donald Cox">
+<meta property="og:image:width" content="2400">
+<meta property="og:image:height" content="1260">
+<meta property="og:image:alt" content="Donald Cox: I design and build the AI systems that run businesses.">
+<meta name="twitter:image" content="https://doncox.ai/assets/og.jpg">
+<meta name="twitter:card" content="summary_large_image">
+</head>
+<body class="page">
+<a class="skip" href="#main">Skip to content</a>
+<header class="top"><div class="wrap"><a class="name" href="/">Donald Cox</a><nav aria-label="Main"><a href="/#systems">Systems</a><a href="/#detail">Results</a><a href="/#ship">How I ship</a><a href="/#demos">Demos</a><a href="/donald-cox-resume.pdf">Resume</a><a href="/#contact">Contact</a></nav></div></header>
+<nav aria-label="Breadcrumb" class="wrap crumb"><a href="/">Donald Cox</a></nav>
+<main id="main" class="wrap study">
+<h1>Five systems, one shop floor</h1>
+<dl class="summary">
+<dt>The system</dt><dd>Dock intake, inventory sync, a production ledger, a shipping kiosk and a watcher, all on one self-hosted workflow engine at a precision manufacturer with an online storefront.</dd>
+<dt>How it works</dt><dd>The model reads and code decides. Failures stop the order and go to a person. Each station is a small web app with an explicit contract.</dd>
+<dt>Results</dt><dd><span data-claim="P-hours">About 350</span> staff hours a year, estimated across seven routine automations, and the owner no longer has to be the link between systems.</dd>
+<dt>My role</dt><dd>Architect and engineer, from design through production support.</dd>
+</dl>
+
+<h2>What it replaced</h2>
+<p>People retyped part numbers between a desktop accounting system, a storefront and an operations workbook all day, and each retype could create a bad record nobody would find for weeks. The floor can't slow down, the team is small, and old and new systems have to run side by side.</p>
+
+<h2>How the five fit together</h2>
+<p><strong>In.</strong> Dock intake reads pallet labels with a vision model, checks them against the supplier's packing list, and creates batch-traced stock records and accounting receipts. Pallet receiving went from <span data-claim="P-intake-staff">3 people to 1</span> on a phone, by my own count.</p>
+<p><strong>Counted.</strong> Inventory sync pulls stock from the accounting system <span data-claim="P-sync-freq">three times a day</span> and routes reorders to the right work station, which a person used to do by hand each morning, when it got done at all.</p>
+<p><strong>Made.</strong> The production ledger put a raw stock rack into a system for the first time, then tracks each part through stations, labels and accounting receipts. Its assistant can plan any action on the floor tab but cannot commit one: the server enforces a person's Yes.</p>
+<p><strong>Verified.</strong> The <a href="/work/verification-kiosk/">shipping kiosk</a> photographs packed orders. A vision model reads what is in the box, and code compares that with the order system.</p>
+<p><strong>Watched.</strong> The watcher scans <span data-claim="P-5min">every five minutes</span> in working hours for known failure classes. It looks above all for this one: the system said something was wrong and the work moved on. It reads the other systems without writing to them.</p>
+<figure class="diagram">
+<svg viewBox="0 0 640 190" role="img" aria-labelledby="platform-t">
+<title id="platform-t">Goods move through intake, inventory sync, the production ledger and the shipping kiosk. A watcher underneath reads from all four.</title>
+<rect class="box" x="10" y="20" width="130" height="56" rx="4"/><text x="75" y="53" text-anchor="middle">Dock intake</text>
+<rect class="box" x="170" y="20" width="130" height="56" rx="4"/><text x="235" y="53" text-anchor="middle">Inventory sync</text>
+<rect class="box" x="330" y="20" width="130" height="56" rx="4"/><text x="395" y="53" text-anchor="middle">Production ledger</text>
+<rect class="box" x="490" y="20" width="130" height="56" rx="4"/><text x="555" y="53" text-anchor="middle">Shipping kiosk</text>
+<path class="wire" d="M140 48 H170 M300 48 H330 M460 48 H490"/>
+<path class="wire" d="M75 76 V122 M235 76 V122 M395 76 V122 M555 76 V122"/>
+<rect class="box" x="10" y="122" width="610" height="50" rx="4"/><text x="315" y="152" text-anchor="middle">Watcher: read-only, raises a finding when a flag was ignored</text>
+</svg>
+<figcaption>Four systems move the goods. The fifth reads all of them and writes to none.</figcaption>
+</figure>
+<p>All five share one pattern. A self-hosted workflow engine connects everything through explicit webhook contracts. Intake, the ledger and the watcher are small web apps in containers on the shop server, so rebuilding one updates every desk that uses it. The kiosk runs a small service on each station, deployed to one station first and then the other. When a model reasons past evidence it read correctly, I add a deterministic check and don't reach for a better prompt, because a rule can be tested and replayed.</p>
+
+<h2>Results</h2>
+<div class="table-wrap">
+<table class="numbers">
+<thead><tr><th>What</th><th>Value</th><th>How it was measured</th><th>Tag</th></tr></thead>
+<tbody>
+<tr><td>Staff hours returned per year</td><td data-claim="P-hours">About 350</td><td>Seven routine automations, on minutes per task I estimated</td><td>Estimate</td></tr>
+<tr><td>Hosting avoided per year</td><td data-claim="H-hosting">About $9,000</td><td>A vendor's list price for this volume, converted from euros</td><td>Modeled</td></tr>
+<tr><td>Automation runs a day</td><td data-claim="H-runs">About 1,200</td><td>From <span data-claim="H-runs8">9,535</span> server runs in <span data-claim="H-days">8 days</span></td><td>Measured</td></tr>
+<tr><td>Lines matched on the reference intake</td><td data-claim="P-intake-lines">36 of 36</td><td>On real phone photos</td><td>Measured</td></tr>
+<tr><td>Demand found on the wrong station</td><td data-claim="P-ledger-units">101</td><td>Found while designing the ledger</td><td>Measured</td></tr>
+</tbody>
+</table>
+</div>
+
+<h2>Problems it surfaced, and what I did about them</h2>
+<p>A sync defect had frozen station assignments on an estimated <span data-claim="P-sync-rows">212</span> rows while looking healthy, which is why automation now stays out of columns people own. A dead AI step billed silently for <span data-claim="P-watch-18h">18 hours</span> before the morning check and an audit found it, so that failure now has its own rule. Each watcher rule records the incident that created it.</p>
+
+<h2>Stack</h2>
+<p>Claude for vision, JavaScript, Python, Docker, a self-hosted workflow engine, a Raspberry Pi and small-form-factor PCs at the stations, and Claude Code for the build.</p>
+
+<h2>My role</h2>
+<p>I am the architect and engineer of these systems. I decide what gets built and how, set the guard rails, make the release calls and answer for the results in production. I direct Claude Code agents to write much of the code, and the tests, replays and watcher exist so each change is checked before and after it ships.</p>
+<p class="demo-link"><a href="/demos/">Run all five demos</a> on made-up data.</p>
+</main>
+<footer class="site-foot"><div class="wrap"><p>Donald Cox</p><p class="legal"><a href="/privacy/">Privacy</a><a href="/terms/">Terms</a><a href="https://github.com/Donald-Cox" rel="noopener">GitHub</a></p></div></footer>
+</body>
+</html>

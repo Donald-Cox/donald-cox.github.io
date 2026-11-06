@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://doncox.ai/sitemap.xml

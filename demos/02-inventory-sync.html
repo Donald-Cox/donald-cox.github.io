@@ -1,0 +1,683 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Daily Inventory Sync and Reorder Routing | Donald Cox</title>
+<style>
+/* ==== NB SHARED TOKENS v1 ====================================================
+   Keep this block byte-identical across all five demo files. If it changes,
+   run demos/sync-shared.py so every demo stays in step.
+   ========================================================================== */
+:root{
+  --ink:#0d1014;
+  --panel:#141920;
+  --panel-2:#1a212a;
+  --well:#0a0d11;
+  --rule:#28323d;
+  --rule-soft:#1f2731;
+  --text:#d5dde5;
+  --text-hi:#f2f6fa;
+  --dim:#8f9ba8;
+  --dimmer:#7f8b98;
+  --copper:#c9773c;
+  --copper-hi:#e69a55;
+  --copper-dim:#7a4823;
+  --ok:#6f9b6a;
+  --warn:#c2a03c;
+  --stop:#de6653;
+  --model:#7196b8;
+  --code:#c9773c;
+  --mono:ui-monospace,"SF Mono",SFMono-Regular,"Cascadia Mono",Menlo,Consolas,"Liberation Mono",monospace;
+  --serif:"Iowan Old Style","Palatino Linotype",Palatino,"Book Antiqua",Georgia,serif;
+  --t-fast:120ms cubic-bezier(.2,0,0,1);
+  --t-mech:260ms cubic-bezier(.33,0,.15,1);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--ink);
+  color:var(--text);
+  font-family:var(--mono);
+  font-size:14px;
+  line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+  background-image:
+    repeating-linear-gradient(0deg,rgba(255,255,255,.014) 0 1px,transparent 1px 3px),
+    radial-gradient(120% 80% at 50% -10%,rgba(201,119,60,.07),transparent 60%);
+}
+.wrap{max-width:1240px;margin:0 auto;padding:20px 18px 64px}
+.lab{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim)}
+.num{font-variant-numeric:tabular-nums}
+.prose{font-family:var(--serif);font-size:15.5px;line-height:1.62;color:var(--text)}
+.prose p{margin:0 0 .85em}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+.btn{
+  font-family:var(--mono);font-size:11px;letter-spacing:.13em;text-transform:uppercase;
+  padding:9px 16px;border:1px solid var(--rule);background:var(--panel-2);color:var(--text);
+  transition:border-color var(--t-fast),background var(--t-fast),color var(--t-fast);
+}
+.btn:hover:not(:disabled){border-color:var(--copper);color:var(--text-hi)}
+.btn:focus-visible{outline:2px solid var(--copper-hi);outline-offset:2px}
+.btn:disabled{opacity:.35;cursor:not-allowed}
+.btn-p{background:var(--copper);border-color:var(--copper);color:#160d06;font-weight:700}
+.btn-p:hover:not(:disabled){background:var(--copper-hi);border-color:var(--copper-hi);color:#160d06}
+.panel{background:var(--panel);border:1px solid var(--rule-soft)}
+.panel-hd{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  padding:9px 14px;border-bottom:1px solid var(--rule-soft);background:var(--panel-2);
+}
+.rule{height:1px;background:var(--rule-soft);border:0;margin:0}
+.sw{display:inline-flex;align-items:center;gap:9px;cursor:pointer;user-select:none}
+.sw input{position:absolute;opacity:0;width:0;height:0}
+.sw .track{
+  width:34px;height:16px;background:var(--well);border:1px solid var(--rule);
+  position:relative;flex:none;transition:border-color var(--t-fast),background var(--t-fast);
+}
+.sw .track::after{
+  content:"";position:absolute;top:1px;left:1px;width:12px;height:12px;background:var(--dimmer);
+  transition:transform var(--t-mech),background var(--t-mech);
+}
+.sw input:checked + .track{border-color:var(--copper-dim);background:#1b120a}
+.sw input:checked + .track::after{transform:translateX(16px);background:var(--copper)}
+.sw input:focus-visible + .track{outline:2px solid var(--copper-hi);outline-offset:2px}
+.sw .txt{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim)}
+.sw input:checked ~ .txt{color:var(--text)}
+.banner{
+  border:1px solid var(--rule-soft);border-left:2px solid var(--copper-dim);
+  background:linear-gradient(90deg,rgba(201,119,60,.06),transparent 60%);
+  padding:9px 14px;font-size:11.5px;color:var(--dim);margin-bottom:14px;line-height:1.6;
+}
+details.drawer{border:1px solid var(--rule-soft);background:var(--panel);margin-top:18px}
+details.drawer > summary{
+  padding:11px 14px;cursor:pointer;font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--dim);list-style:none;display:flex;align-items:center;gap:10px;
+}
+details.drawer > summary::-webkit-details-marker{display:none}
+details.drawer > summary::before{content:"+";color:var(--copper);font-weight:700}
+details.drawer[open] > summary::before{content:"-"}
+details.drawer > summary:hover{color:var(--text)}
+.drawer-body{padding:4px 18px 20px;border-top:1px solid var(--rule-soft)}
+@media (max-width:720px){ .wrap{padding:14px 12px 48px} }
+/* ==== END NB SHARED TOKENS ================================================ */
+
+.mast{display:flex;align-items:baseline;justify-content:space-between;gap:16px;flex-wrap:wrap;border-bottom:1px solid var(--rule);padding-bottom:10px;margin-bottom:14px}
+.mast h1{font-size:15px;letter-spacing:.2em;text-transform:uppercase;margin:0;font-weight:700;color:var(--text-hi)}
+.mast h1 span{color:var(--copper)}
+
+/* the day scrubber */
+.day{border:1px solid var(--rule-soft);background:var(--panel);margin-bottom:14px}
+.day-row{display:flex;align-items:center;gap:16px;padding:11px 14px;flex-wrap:wrap}
+.day-row .seg{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
+.day-row .seg b{color:var(--text-hi);font-weight:400;letter-spacing:.06em;font-size:15px}
+.track-wrap{position:relative;padding:0 14px 16px}
+.track-wrap input[type=range]{width:100%;margin:0;accent-color:var(--copper);background:transparent}
+.track-wrap input[type=range]:focus-visible{outline:2px solid var(--copper-hi);outline-offset:4px}
+.marks{position:relative;height:15px;margin-top:2px}
+.marks span{position:absolute;transform:translateX(-50%);font-size:9px;letter-spacing:.1em;color:var(--dim);white-space:nowrap}
+.marks span::before{content:"";position:absolute;left:50%;top:-6px;width:1px;height:5px;background:var(--copper-dim)}
+.marks span.fired{color:var(--copper-hi)}
+
+.three{display:grid;grid-template-columns:minmax(0,.85fr) minmax(0,1.5fr) minmax(0,.9fr);gap:14px;align-items:start}
+.three>*{min-width:0}
+.scrollx{overflow-x:auto}
+.three.even{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+@media (max-width:1060px){ .three,.three.even{grid-template-columns:minmax(0,1fr)} }
+
+table.sheet{border-collapse:collapse;width:100%;font-size:11.5px}
+table.sheet th{text-align:left;font-weight:400;font-size:9px;letter-spacing:.13em;text-transform:uppercase;color:var(--dim);padding:6px 8px;border-bottom:1px solid var(--rule);white-space:nowrap}
+table.sheet td{padding:6px 8px;border-bottom:1px solid var(--rule-soft);white-space:nowrap}
+table.sheet tr:last-child td{border-bottom:0}
+table.sheet td.sku{color:var(--text-hi)}
+table.sheet td.make{color:var(--copper-hi)}
+table.sheet td.make.zero{color:var(--dimmer)}
+table.sheet td.date{color:var(--ok)}
+table.sheet td.date.none{color:var(--dimmer)}
+table.sheet tr.changed td{background:rgba(201,119,60,.10)}
+@media (max-width:720px){
+  table.wbsheet th,table.wbsheet td{padding-left:4px;padding-right:4px}
+  table.wbsheet th:nth-child(4),table.wbsheet td:nth-child(4){display:none}
+  table.wbsheet .asg{flex-direction:column;align-items:flex-start;gap:2px}
+}
+.box{display:inline-block;width:11px;height:11px;border:1px solid var(--rule);vertical-align:-1px}
+.box.on{background:var(--copper);border-color:var(--copper)}
+
+.asg{display:flex;align-items:center;gap:6px}
+.asg .val{color:var(--text)}
+.asg .kind{font-size:8.5px;letter-spacing:.1em;text-transform:uppercase;padding:1px 5px;border:1px solid var(--rule);color:var(--dimmer)}
+.asg .kind.formula{border-color:var(--code);color:var(--code)}
+.asg .kind.frozen{border-color:var(--stop);color:var(--stop)}
+
+.chain{padding:12px 14px;font-size:11px;color:var(--dim);line-height:1.6}
+.chain .step{display:flex;gap:9px;align-items:baseline;padding:4px 0}
+.chain .step b{color:var(--text);font-weight:400;min-width:126px;display:inline-block}
+.chain .arrow{color:var(--copper);white-space:nowrap;flex-shrink:0}
+
+.station{padding:10px 14px;border-bottom:1px solid var(--rule-soft)}
+.station:last-child{border-bottom:0}
+.station h4{margin:0 0 5px;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--copper-hi);font-weight:400}
+.station ul{margin:0;padding:0;list-style:none}
+.station li{font-size:11px;color:var(--text);padding:2px 0}
+.station li span{color:var(--dim)}
+.station .none{font-size:10.5px;color:var(--dimmer)}
+.station.moved{box-shadow:inset 2px 0 0 var(--copper)}
+
+.formbar{display:flex;gap:8px;padding:12px 14px;flex-wrap:wrap;align-items:center}
+.formbar select{font-family:var(--mono);font-size:11.5px;background:var(--well);color:var(--text);border:1px solid var(--rule);padding:6px 8px}
+.formbar select:focus-visible{outline:2px solid var(--copper-hi);outline-offset:1px}
+
+.log{padding:10px 14px;max-height:190px;overflow-y:auto}
+.log .e{font-size:11px;padding:4px 0;border-bottom:1px solid var(--rule-soft);color:var(--dim);line-height:1.55}
+.log .e:last-child{border-bottom:0}
+.log .e b{color:var(--text);font-weight:400}
+.log .e.ok b{color:var(--ok)}
+.log .e.bad b{color:var(--stop)}
+.log .e.silent{color:#dcc684}
+
+.switches{display:flex;flex-wrap:wrap;gap:10px 24px;padding:12px 14px}
+.note{font-size:11.5px;border-left:2px solid var(--rule);padding:7px 11px;background:var(--panel-2);color:var(--dim);margin:0 14px 14px;line-height:1.6}
+.note.stop{border-left-color:var(--stop);color:#e2a79f}
+.note.warn{border-left-color:var(--warn);color:#dcc684}
+</style>
+<meta name="description" content="Interactive demo: a production plan refreshed three times a day with nobody exporting anything, and a deleted rule you can turn back on. Runs on invented data.">
+<link rel="canonical" href="https://doncox.ai/demos/02-inventory-sync.html">
+<meta name="theme-color" content="#07090c">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://doncox.ai/demos/02-inventory-sync.html">
+<meta property="og:title" content="Daily Inventory Sync and Reorder Routing | Donald Cox">
+<meta property="og:description" content="Interactive demo: a production plan refreshed three times a day with nobody exporting anything, and a deleted rule you can turn back on. Runs on invented data.">
+<meta property="og:site_name" content="Donald Cox">
+<meta property="og:image" content="https://doncox.ai/assets/og.jpg">
+<meta property="og:image:width" content="2400">
+<meta property="og:image:height" content="1260">
+<meta property="og:image:alt" content="Donald Cox: I design and build the AI systems that run businesses.">
+<meta name="twitter:image" content="https://doncox.ai/assets/og.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/favicon.ico" sizes="48x48">
+<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+</head>
+<body>
+<main>
+<div class="wrap">
+
+  <div class="banner">
+    Demonstration environment. Invented catalog, invented stations, invented demand. It reproduces
+    the rule logic of a workflow running in production at a manufacturer, on eight parts instead of
+    roughly a thousand. The live one runs three times a day plus on demand.
+  </div>
+
+  <div class="mast">
+    <h1>Northbeam <span>Precision</span> / Daily Inventory Sync</h1>
+  </div>
+
+  <div class="day">
+    <div class="day-row">
+      <span class="seg">TIME <b class="num" id="tnow">00:00</b></span>
+      <span class="seg">SYNCS RUN <b class="num" id="tsync">0</b></span>
+      <span class="seg" id="tstate" style="color:var(--copper-hi)">before the first sync</span>
+      <span style="margin-left:auto;display:flex;gap:8px">
+        <button class="btn" id="stepBtn">Advance to next sync</button>
+        <button class="btn" id="resetBtn">Reset the day</button>
+      </span>
+    </div>
+    <div class="track-wrap">
+      <input type="range" id="scrub" min="0" max="1439" value="0" step="5" aria-label="time of day">
+      <div class="marks" id="marks"></div>
+    </div>
+  </div>
+
+  <div class="three">
+    <section class="panel">
+      <div class="panel-hd"><span class="lab">Accounting</span><span class="lab" id="acctState">live</span></div>
+      <div class="scrollx" style="padding:2px 6px 8px">
+        <table class="sheet"><thead><tr><th>Item</th><th>On hand</th><th>Min</th></tr></thead>
+          <tbody id="acct"></tbody></table>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-hd"><span class="lab">Operations workbook, reorder list</span><span class="lab" id="wbState"></span></div>
+      <div class="scrollx" style="padding:2px 6px 8px">
+        <table class="sheet wbsheet"><thead><tr>
+          <th>Item</th><th>Vendor</th><th>Make</th><th>RO date</th><th>Done</th><th>Assigned to</th>
+        </tr></thead><tbody id="wb"></tbody></table>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-hd"><span class="lab">Station tabs</span><span class="lab">pivots over the list</span></div>
+      <div id="stations"></div>
+    </section>
+  </div>
+
+  <div class="three even" style="margin-top:14px">
+    <section class="panel">
+      <div class="panel-hd"><span class="lab">Reassign a part</span><span class="lab">a human decision</span></div>
+      <div class="formbar">
+        <select id="fSku" aria-label="part"></select>
+        <select id="fTo" aria-label="station"></select>
+        <button class="btn btn-p" id="fGo">Submit</button>
+      </div>
+      <div class="chain" id="chain"></div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-hd"><span class="lab">Run log</span><span class="lab">what an operator would see</span></div>
+      <div class="log" id="log" tabindex="0" role="log" aria-label="Event log"></div>
+    </section>
+  </div>
+
+  <section class="panel" style="margin-top:14px">
+    <div class="panel-hd"><span class="lab">Sabotage and engine switches</span><span class="lab">break it on purpose</span></div>
+    <div class="switches">
+      <label class="sw"><input type="checkbox" id="swRule3"><span class="track"></span><span class="txt">Legacy rule 3, writes into the assignment column</span></label>
+      <label class="sw"><input type="checkbox" id="swDown"><span class="track"></span><span class="txt">Accounting is unreachable</span></label>
+    </div>
+    <hr class="rule">
+    <div class="switches">
+      <label class="sw"><input type="checkbox" id="enGuard" checked><span class="track"></span><span class="txt">Hard fail guard before the write</span></label>
+    </div>
+    <div class="note" id="swNote"></div>
+  </section>
+
+  <details class="drawer">
+    <summary>How this works</summary>
+    <div class="drawer-body">
+      <div class="prose">
+        <p><b>What it replaces.</b> A person, every morning: open the accounting system on the machine
+        that hosts the company file, run a stock status report, export it to CSV, upload it into the
+        workbook, then walk about a thousand rows setting today's date on everything that needs
+        making and clearing it on everything that does not. Mechanical work, done once a day if it got done at all, and the whole production plan was only as fresh
+        as the last time somebody did it.</p>
+
+        <p><b>What it does.</b> One workflow on three cron triggers, plus an hourly poll for manual requests. It
+        pulls live stock through a bridge to a desktop accounting product, writes the inventory tab,
+        and applies two rules to the reorder list: set the date and tick the box when the make
+        quantity goes positive, clear both when it goes back to zero. The columns are addressed by
+        position rather than by header name, deliberately, because headers get renamed by people and
+        positions do not.</p>
+
+        <p><b>The rule that had to be deleted.</b> The original workflow had a third rule that wrote
+        the vendor name into the assignment column whenever the displayed assignment differed from
+        the vendor. Read that condition again: the only time it is ever true is when a human has
+        deliberately reassigned the part. So the rule's entire real world effect was to erase human
+        intent and freeze the formula cell into static text, after which every future reassignment of
+        that part silently did nothing. An estimated 212 rows were affected, 38 were restored by hand, and the failure
+        presented as "the form is broken". Turn it on above and watch it happen to your own
+        reassignment.</p>
+
+        <p><b>Why the fix was delicate.</b> Restoring the formulas while the old version could still
+        fire, on cron, on the webhook, or on a manual editor run that ignores the active toggle,
+        would have re-frozen the cells within hours. The order was: deactivate old, activate new,
+        then and only then repair the data. And the repair was itself a mass reassignment, because
+        restoring a formula to a frozen cell silently moves that part to whatever its newest form
+        submission says, which may be a terminal state. It was diffed old against new and signed off
+        before it was applied, with before and after snapshots taken. One more trap: deleting the
+        dead rule's body while leaving its counter variable referenced in the output would have
+        thrown and killed the entire reorder half. Minimal edits still have to be complete edits.</p>
+
+        <p><b>The silent empty.</b> The accounting call was configured never to throw. On any failure
+        it passed its own error downstream as data. The parser took an early return path that
+        produced an object with no rows field. The writer serialized that object, the missing field
+        was dropped entirely by serialization, and the write went out with no values at all. The
+        spreadsheet API returned success on a no-op write against a tab that had just been cleared.
+        Result: an empty inventory tab, a run marked complete, and no error anywhere. The run log
+        could not even reveal it, because the summary node read two field names the parser never
+        emitted, so those columns were always null. Flip both switches above and watch a green run
+        produce nothing.</p>
+
+        <p><b>Assignment is owned by people, and the chain is all formulas.</b> A human submits a
+        small form, responses land newest first, the assignment column looks up the newest one and
+        falls back to the vendor, and the station tabs are pivots over that column. There is no
+        script in the chain at all, which means a reassignment is one appended row and is trivially
+        reversible by appending a newer one. It also means the station tabs keep no history, so any
+        number read off one is live state and never a trend.</p>
+
+        <p><b>Measured.</b> Roughly 1,030 reorder rows processed per run against a catalog of about
+        3,400 accounting items, of which about 1,300 are inactive and excluded from analytics by
+        default. Three runs a day plus on demand. After the fix, a dry run produced zero writes to
+        the assignment column and no errors, and the restored cells were verified one by one against
+        the pre-change snapshot.</p>
+      </div>
+    </div>
+  </details>
+</div>
+
+</main>
+<script>
+"use strict";
+/* =========================================================================
+   Daily Inventory Sync, demo. Invented catalog, stations and demand.
+   Deterministic: scrubbing to a time replays the day from zero, so the same
+   time always produces the same state in both directions.
+   ========================================================================= */
+
+const STATIONS = ["Machining","Assembly","Finishing","Inspection","On order"];
+const SYNCS = [300, 720, 1080];          /* 05:00, 12:00, 18:00 */
+
+/* onHand is sampled at each sync point. min drives the make quantity. */
+const CATALOG = [
+  { sku:"NB-ROD-0375-STD", vendor:"Machining",  min:20, onHand:[26,18,18] },
+  { sku:"NB-ROD-0500-STD", vendor:"Machining",  min:15, onHand:[10,12,16] },
+  { sku:"NB-ROD-0625-STD", vendor:"Machining",  min:8,  onHand:[2,2,2]    },
+  { sku:"NB-TRQ-014-ADJ",  vendor:"Assembly",   min:12, onHand:[8,8,8]    },
+  { sku:"NB-TRQ-014-STD",  vendor:"Assembly",   min:12, onHand:[14,14,11] },
+  { sku:"NB-KIT-0375-STD", vendor:"Assembly",   min:10, onHand:[4,9,10]   },
+  { sku:"NB-ABR-050-STD",  vendor:"Finishing",  min:30, onHand:[40,40,40] },
+  { sku:"NB-GAU-200-STD",  vendor:"Inspection", min:5,  onHand:[6,6,6]    }
+];
+
+/* Pre-existing human decisions, newest first once sorted. Both are on parts that
+   are currently inactive, which is precisely the row legacy rule 3 attacks. */
+const SEED_FORMS = [
+  { t:-120, sku:"NB-ABR-050-STD", to:"Machining" },
+  { t:-90,  sku:"NB-GAU-200-STD", to:"Assembly"  }
+];
+
+const D = {
+  now:0, syncs:0, forms:[], frozen:{}, rows:[], acctRows:[], log:[],
+  lastChanged:{}, movedStations:{}, tabEmpty:false
+};
+const $ = id => document.getElementById(id);
+
+/* ---- DOM helpers ---- */
+function el(tag, opts, kids){
+  const n = document.createElement(tag);
+  if(opts){
+    if(opts.cls) n.className = opts.cls;
+    if(opts.text != null) n.textContent = opts.text;
+    if(opts.style) n.setAttribute("style", opts.style);
+    if(opts.attrs) for(const k in opts.attrs) n.setAttribute(k, opts.attrs[k]);
+  }
+  if(kids) kids.forEach(c=>{ if(c) n.appendChild(typeof c === "string" ? document.createTextNode(c) : c); });
+  return n;
+}
+function clear(n){ while(n.firstChild) n.removeChild(n.firstChild); }
+function hhmm(m){ return String(Math.floor(m/60)).padStart(2,"0") + ":" + String(m%60).padStart(2,"0"); }
+
+/* ---- the assignment chain, all formulas, no script ----
+   sorted responses, newest first  ->  lookup, else fall back to vendor
+   A frozen cell is a literal and no longer participates. */
+function sortedForms(upto){
+  return D.forms.filter(f=>f.t <= upto).slice().sort((a,b)=>b.t - a.t);
+}
+function assignmentOf(sku, upto){
+  if(Object.prototype.hasOwnProperty.call(D.frozen, sku)){
+    return { value:D.frozen[sku], kind:"frozen" };
+  }
+  const hit = sortedForms(upto).find(f=>f.sku === sku);
+  const vendor = CATALOG.find(c=>c.sku === sku).vendor;
+  return { value: hit ? hit.to : vendor, kind:"formula" };
+}
+
+/* ---- one sync ---- */
+function pull(index){
+  if($("swDown").checked){
+    /* The call is configured never to throw, so a failure comes back as data. */
+    return { error:"accounting host unreachable", rows:null };
+  }
+  return { error:null, rows: CATALOG.map(c=>({ sku:c.sku, onHand:c.onHand[index], min:c.min })) };
+}
+function runSync(index, atMinute){
+  const guard = $("enGuard").checked;
+  const res = pull(index);
+
+  if(res.error){
+    if(guard){
+      D.log.push({ k:"bad", t:hhmm(atMinute), m:"run FAILED: " + res.error + ". The guard refuses to write when the parser produced no rows, so the tab keeps yesterday's data and somebody is told." });
+      return { status:"failed", written:0 };
+    }
+    /* The silent chain: no rows field, serialization drops it, the write goes out
+       with no values, and the API returns success on a no-op against a tab that
+       was just cleared. */
+    D.acctRows = [];
+    D.rows = [];
+    D.tabEmpty = true;
+    D.log.push({ k:"silent", t:hhmm(atMinute), m:"run COMPLETE, 0 errors. Items pulled: null. Rows written: null. The tab is empty and nothing anywhere says so." });
+    return { status:"complete", written:0 };
+  }
+
+  D.tabEmpty = false;
+  D.acctRows = res.rows;
+  D.lastChanged = {};
+
+  const rule3 = $("swRule3").checked;
+  let froze = 0;
+
+  D.rows = res.rows.map(r=>{
+    const cat = CATALOG.find(c=>c.sku === r.sku);
+    const prev = D.rows.find(x=>x.sku === r.sku);
+    const make = Math.max(0, r.min - r.onHand);
+    const row = {
+      sku:r.sku, vendor:cat.vendor, make:make,
+      roDate: prev ? prev.roDate : null,
+      done: prev ? prev.done : false
+    };
+
+    /* Rule 1: it needs making and nothing has opened a reorder yet. */
+    if(make > 0 && !row.roDate){
+      row.roDate = hhmm(atMinute).slice(0,2) + ":00";
+      row.done = true;
+      D.lastChanged[r.sku] = "rule1";
+    }
+    /* Rule 2: it no longer needs making. */
+    if(make <= 0 && row.roDate){
+      row.roDate = null;
+      row.done = false;
+      D.lastChanged[r.sku] = "rule2";
+    }
+
+    /* Legacy rule 3. Fires only on an inactive row whose displayed assignment
+       differs from the vendor, which is only ever true when a human changed it. */
+    if(rule3){
+      const shown = assignmentOf(r.sku, atMinute);
+      const inactive = (make === 0) && !row.roDate && !row.done;
+      if(inactive && shown.value !== cat.vendor){
+        D.frozen[r.sku] = cat.vendor;      /* literal text from here on */
+        froze++;
+        D.lastChanged[r.sku] = "rule3";
+      }
+    }
+    return row;
+  });
+
+  if(froze){
+    D.log.push({ k:"bad", t:hhmm(atMinute), m:"rule 3 wrote the vendor into the assignment column on " + froze + " row" + (froze===1?"":"s") + ". Those cells are static text now. The form still accepts submissions for them and they no longer do anything." });
+  }
+  D.log.push({ k:"ok", t:hhmm(atMinute), m:"run complete. " + res.rows.length + " items pulled, " + D.rows.length + " rows written, " + Object.keys(D.lastChanged).length + " reorder changes." });
+  return { status:"complete", written:D.rows.length };
+}
+
+/* ---- replay the day from zero, so scrubbing is symmetric ---- */
+function setTime(minute){
+  D.now = minute;
+  D.syncs = 0;
+  D.frozen = {};
+  D.rows = [];
+  D.acctRows = [];
+  D.log = [];
+  D.lastChanged = {};
+  D.tabEmpty = false;
+  SYNCS.forEach((s,i)=>{
+    if(s <= minute){ D.syncs++; runSync(i, s); }
+  });
+}
+
+/* ---- render ---- */
+function renderMarks(){
+  const box = $("marks"); clear(box);
+  SYNCS.forEach(s=>{
+    const pct = s / 1439 * 100;
+    box.appendChild(el("span",{cls: s <= D.now ? "fired" : "", style:"left:" + pct + "%", text:hhmm(s)}));
+  });
+}
+function renderAcct(){
+  const tb = $("acct"); clear(tb);
+  $("acctState").textContent = $("swDown").checked ? "unreachable" : "live";
+  if(!D.acctRows.length){
+    tb.appendChild(el("tr",{},[el("td",{attrs:{colspan:"3"},style:"color:var(--dimmer)",
+      text: D.syncs ? "no rows returned" : "no sync has run yet"})]));
+    return;
+  }
+  D.acctRows.forEach(r=>{
+    const tr = el("tr");
+    tr.appendChild(el("td",{cls:"sku",text:r.sku}));
+    tr.appendChild(el("td",{cls:"num",text:String(r.onHand)}));
+    tr.appendChild(el("td",{cls:"num",style:"color:var(--dim)",text:String(r.min)}));
+    tb.appendChild(tr);
+  });
+}
+function renderWb(){
+  const tb = $("wb"); clear(tb);
+  $("wbState").textContent = D.tabEmpty ? "empty, and the run said complete" : (D.rows.length ? D.rows.length + " rows" : "");
+  if(!D.rows.length){
+    tb.appendChild(el("tr",{},[el("td",{attrs:{colspan:"6"},style:"color:var(--dimmer)",
+      text: D.tabEmpty ? "The tab was cleared and then written with nothing." : "No sync has run yet."})]));
+    return;
+  }
+  D.rows.forEach(r=>{
+    const tr = el("tr",{cls: D.lastChanged[r.sku] ? "changed" : ""});
+    tr.appendChild(el("td",{cls:"sku",text:r.sku}));
+    tr.appendChild(el("td",{style:"color:var(--dim)",text:r.vendor}));
+    tr.appendChild(el("td",{cls:"make num" + (r.make ? "" : " zero"),text:String(r.make)}));
+    tr.appendChild(el("td",{cls:"date num" + (r.roDate ? "" : " none"),text:r.roDate || "-"}));
+    const dtd = el("td");
+    dtd.appendChild(el("span",{cls:"box" + (r.done ? " on" : "")}));
+    tr.appendChild(dtd);
+    const a = assignmentOf(r.sku, D.now);
+    const atd = el("td");
+    const wrap = el("div",{cls:"asg"});
+    wrap.appendChild(el("span",{cls:"val",text:a.value}));
+    wrap.appendChild(el("span",{cls:"kind " + a.kind,text:a.kind === "frozen" ? "static text" : "formula"}));
+    atd.appendChild(wrap);
+    tr.appendChild(atd);
+    tb.appendChild(tr);
+  });
+}
+function renderStations(){
+  const box = $("stations"); clear(box);
+  if(!D.rows.length){
+    box.appendChild(el("div",{cls:"station"},[el("div",{cls:"none",text:"Pivots are empty until a sync has run."})]));
+    return;
+  }
+  STATIONS.forEach(st=>{
+    const members = D.rows.filter(r=>assignmentOf(r.sku, D.now).value === st);
+    const sec = el("div",{cls:"station"});
+    sec.appendChild(el("h4",{text:st + "  (" + members.length + ")"}));
+    if(!members.length){
+      sec.appendChild(el("div",{cls:"none",text:"nothing routed here"}));
+    } else {
+      const ul = el("ul");
+      members.forEach(m=>{
+        const li = el("li");
+        li.appendChild(document.createTextNode(m.sku + " "));
+        li.appendChild(el("span",{text:m.make ? "make " + m.make : "no demand"}));
+        ul.appendChild(li);
+      });
+      sec.appendChild(ul);
+    }
+    box.appendChild(sec);
+  });
+}
+function renderChain(){
+  const box = $("chain"); clear(box);
+  const recent = sortedForms(D.now).slice(0,3);
+  const step = (name, body)=>{
+    const d = el("div",{cls:"step"});
+    d.appendChild(el("b",{text:name}));
+    d.appendChild(el("span",{cls:"arrow",text:"->"}));
+    d.appendChild(document.createTextNode(" " + body));
+    return d;
+  };
+  box.appendChild(step("form responses", recent.length ? recent.length + " submission" + (recent.length===1?"":"s") + " so far today and before" : "none yet"));
+  box.appendChild(step("sorted, newest first", recent.length ? recent.map(f=>f.sku + " to " + f.to).join(", ") : "empty"));
+  box.appendChild(step("assignment column", "looks up the newest submission, falls back to the vendor"));
+  box.appendChild(step("station tabs", "pivots over that column, which is why a part moves on its own"));
+  const frozenCount = Object.keys(D.frozen).length;
+  if(frozenCount){
+    box.appendChild(el("div",{cls:"note stop",style:"margin:10px 0 0",
+      text:frozenCount + " assignment cell" + (frozenCount===1?" is":"s are") + " now static text. The chain above no longer reaches " + (frozenCount===1?"it":"them") + ", so submitting the form for those parts does nothing at all, with no error."}));
+  }
+}
+function renderLog(){
+  const box = $("log"); clear(box);
+  if(!D.log.length){
+    box.appendChild(el("div",{cls:"e",text:"No runs yet. Advance the clock."}));
+    return;
+  }
+  D.log.slice().reverse().forEach(e=>{
+    const d = el("div",{cls:"e " + e.k});
+    d.appendChild(el("b",{text:e.t + "  "}));
+    d.appendChild(document.createTextNode(e.m));
+    box.appendChild(d);
+  });
+}
+function renderSwitchNote(){
+  const n = $("swNote");
+  const bits = [];
+  if($("swRule3").checked) bits.push("Legacy rule 3 is on. It only ever fires on a row a human has deliberately changed.");
+  if($("swDown").checked && !$("enGuard").checked) bits.push("Accounting is unreachable and the guard is off. This is the silent empty: a green run that wrote nothing.");
+  if($("swDown").checked && $("enGuard").checked) bits.push("Accounting is unreachable and the guard is on. The run fails loudly and the previous data is left alone.");
+  n.textContent = bits.length ? bits.join("  ") : "Engine at current production configuration. Turn something on and advance the clock to reproduce a defect that actually shipped.";
+  n.className = "note" + ($("swRule3").checked || ($("swDown").checked && !$("enGuard").checked) ? " stop" : ($("swDown").checked ? " warn" : ""));
+}
+function renderAll(){
+  $("tnow").textContent = hhmm(D.now);
+  $("tsync").textContent = String(D.syncs);
+  $("tstate").textContent = D.syncs === 0 ? "before the first sync"
+    : (D.syncs === SYNCS.length ? "day complete" : "between syncs");
+  $("scrub").value = String(D.now);
+  const dayDone = D.syncs === SYNCS.length;
+  $("stepBtn").disabled = dayDone;
+  $("resetBtn").className = dayDone ? "btn btn-p" : "btn";
+  renderMarks(); renderAcct(); renderWb(); renderStations(); renderChain(); renderLog(); renderSwitchNote();
+}
+
+/* ---- wiring ---- */
+(function buildForm(){
+  const s = $("fSku"), t = $("fTo");
+  CATALOG.forEach(c=>{
+    const o = document.createElement("option");
+    o.value = c.sku; o.textContent = c.sku;
+    s.appendChild(o);
+  });
+  STATIONS.forEach(st=>{
+    const o = document.createElement("option");
+    o.value = st; o.textContent = st;
+    t.appendChild(o);
+  });
+  t.value = "Finishing";
+})();
+
+$("fGo").addEventListener("click", ()=>{
+  const sku = $("fSku").value, to = $("fTo").value;
+  D.forms.push({ t:D.now, sku:sku, to:to });
+  renderAll();
+});
+$("scrub").addEventListener("input", ()=>{
+  setTime(parseInt($("scrub").value,10) || 0);   /* form submissions survive a replay */
+  renderAll();
+});
+$("stepBtn").addEventListener("click", ()=>{
+  const next = SYNCS.find(s=>s > D.now);
+  setTime(next === undefined ? 1439 : next);
+  renderAll();
+});
+$("resetBtn").addEventListener("click", ()=>{
+  D.forms = SEED_FORMS.slice();
+  setTime(0);
+  renderAll();
+});
+["swRule3","swDown","enGuard"].forEach(id=>$(id).addEventListener("change", ()=>{
+  setTime(D.now);          /* replay the day under the new configuration */
+  renderAll();
+}));
+
+D.forms = SEED_FORMS.slice();
+setTime(0);
+renderAll();
+</script>
+<footer style="padding:18px 14px;font:13px/1.5 system-ui,sans-serif;color:#9aa4af;background:#07090c">Made-up data. <a href="/" style="color:#7cc8ff">Donald Cox</a> · <a href="/donald-cox-resume.pdf" style="color:#7cc8ff">Resume</a> · <a href="mailto:don@doncox.ai" style="color:#7cc8ff">don@doncox.ai</a> · <a href="/privacy/" style="color:#7cc8ff">Privacy</a> · <a href="/terms/" style="color:#7cc8ff">Terms</a></footer>
+</body>
+</html>

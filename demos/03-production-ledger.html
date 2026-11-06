@@ -1,0 +1,834 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rack-to-Receipt Production Ledger | Donald Cox</title>
+<style>
+/* ==== NB SHARED TOKENS v1 ====================================================
+   Keep this block byte-identical across all five demo files. If it changes,
+   run demos/sync-shared.py so every demo stays in step.
+   ========================================================================== */
+:root{
+  --ink:#0d1014;
+  --panel:#141920;
+  --panel-2:#1a212a;
+  --well:#0a0d11;
+  --rule:#28323d;
+  --rule-soft:#1f2731;
+  --text:#d5dde5;
+  --text-hi:#f2f6fa;
+  --dim:#8f9ba8;
+  --dimmer:#7f8b98;
+  --copper:#c9773c;
+  --copper-hi:#e69a55;
+  --copper-dim:#7a4823;
+  --ok:#6f9b6a;
+  --warn:#c2a03c;
+  --stop:#de6653;
+  --model:#7196b8;
+  --code:#c9773c;
+  --mono:ui-monospace,"SF Mono",SFMono-Regular,"Cascadia Mono",Menlo,Consolas,"Liberation Mono",monospace;
+  --serif:"Iowan Old Style","Palatino Linotype",Palatino,"Book Antiqua",Georgia,serif;
+  --t-fast:120ms cubic-bezier(.2,0,0,1);
+  --t-mech:260ms cubic-bezier(.33,0,.15,1);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--ink);
+  color:var(--text);
+  font-family:var(--mono);
+  font-size:14px;
+  line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+  background-image:
+    repeating-linear-gradient(0deg,rgba(255,255,255,.014) 0 1px,transparent 1px 3px),
+    radial-gradient(120% 80% at 50% -10%,rgba(201,119,60,.07),transparent 60%);
+}
+.wrap{max-width:1240px;margin:0 auto;padding:20px 18px 64px}
+.lab{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim)}
+.num{font-variant-numeric:tabular-nums}
+.prose{font-family:var(--serif);font-size:15.5px;line-height:1.62;color:var(--text)}
+.prose p{margin:0 0 .85em}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+.btn{
+  font-family:var(--mono);font-size:11px;letter-spacing:.13em;text-transform:uppercase;
+  padding:9px 16px;border:1px solid var(--rule);background:var(--panel-2);color:var(--text);
+  transition:border-color var(--t-fast),background var(--t-fast),color var(--t-fast);
+}
+.btn:hover:not(:disabled){border-color:var(--copper);color:var(--text-hi)}
+.btn:focus-visible{outline:2px solid var(--copper-hi);outline-offset:2px}
+.btn:disabled{opacity:.35;cursor:not-allowed}
+.btn-p{background:var(--copper);border-color:var(--copper);color:#160d06;font-weight:700}
+.btn-p:hover:not(:disabled){background:var(--copper-hi);border-color:var(--copper-hi);color:#160d06}
+.panel{background:var(--panel);border:1px solid var(--rule-soft)}
+.panel-hd{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  padding:9px 14px;border-bottom:1px solid var(--rule-soft);background:var(--panel-2);
+}
+.rule{height:1px;background:var(--rule-soft);border:0;margin:0}
+.sw{display:inline-flex;align-items:center;gap:9px;cursor:pointer;user-select:none}
+.sw input{position:absolute;opacity:0;width:0;height:0}
+.sw .track{
+  width:34px;height:16px;background:var(--well);border:1px solid var(--rule);
+  position:relative;flex:none;transition:border-color var(--t-fast),background var(--t-fast);
+}
+.sw .track::after{
+  content:"";position:absolute;top:1px;left:1px;width:12px;height:12px;background:var(--dimmer);
+  transition:transform var(--t-mech),background var(--t-mech);
+}
+.sw input:checked + .track{border-color:var(--copper-dim);background:#1b120a}
+.sw input:checked + .track::after{transform:translateX(16px);background:var(--copper)}
+.sw input:focus-visible + .track{outline:2px solid var(--copper-hi);outline-offset:2px}
+.sw .txt{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim)}
+.sw input:checked ~ .txt{color:var(--text)}
+.banner{
+  border:1px solid var(--rule-soft);border-left:2px solid var(--copper-dim);
+  background:linear-gradient(90deg,rgba(201,119,60,.06),transparent 60%);
+  padding:9px 14px;font-size:11.5px;color:var(--dim);margin-bottom:14px;line-height:1.6;
+}
+details.drawer{border:1px solid var(--rule-soft);background:var(--panel);margin-top:18px}
+details.drawer > summary{
+  padding:11px 14px;cursor:pointer;font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--dim);list-style:none;display:flex;align-items:center;gap:10px;
+}
+details.drawer > summary::-webkit-details-marker{display:none}
+details.drawer > summary::before{content:"+";color:var(--copper);font-weight:700}
+details.drawer[open] > summary::before{content:"-"}
+details.drawer > summary:hover{color:var(--text)}
+.drawer-body{padding:4px 18px 20px;border-top:1px solid var(--rule-soft)}
+@media (max-width:720px){ .wrap{padding:14px 12px 48px} }
+/* ==== END NB SHARED TOKENS ================================================ */
+
+.mast{display:flex;align-items:baseline;justify-content:space-between;gap:16px;flex-wrap:wrap;border-bottom:1px solid var(--rule);padding-bottom:10px;margin-bottom:14px}
+.mast h1{font-size:15px;letter-spacing:.2em;text-transform:uppercase;margin:0;font-weight:700;color:var(--text-hi)}
+.mast h1 span{color:var(--copper)}
+.readout{display:flex;align-items:center;gap:14px;font-size:11px;color:var(--dim);letter-spacing:.1em}
+.readout b{color:var(--text);font-weight:400}
+
+.cols{display:grid;grid-template-columns:minmax(0,300px) minmax(0,1fr);gap:14px;align-items:start}
+.cols.downstream{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:0}
+.downstream-b{padding:12px 14px;border-left:1px solid var(--rule-soft)}
+@media (max-width:980px){ .cols{grid-template-columns:1fr} }
+
+/* the rack, rendered as a physical object */
+.rack{padding:10px 12px}
+.shelf{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid var(--rule-soft)}
+.shelf:last-child{border-bottom:0}
+.shelf .id{font-size:11.5px;color:var(--text-hi)}
+.shelf .sub{font-size:10px;color:var(--dim)}
+.blanks{display:flex;gap:2px;flex-wrap:wrap;margin-top:5px;max-width:190px}
+.blanks i{width:4px;height:16px;background:var(--copper-dim);display:block;transition:background var(--t-mech),opacity var(--t-mech)}
+.blanks i.taken{background:var(--well);opacity:.5}
+.shelf .ct{font-size:19px;color:var(--copper-hi);letter-spacing:.04em}
+.shelf.zero .ct{color:var(--stop)}
+
+.worklist .row{display:grid;grid-template-columns:1fr auto auto;gap:10px;align-items:center;padding:9px 14px;border-bottom:1px solid var(--rule-soft)}
+.worklist .row:last-child{border-bottom:0}
+.worklist .need{font-size:11px;color:var(--dim)}
+.worklist .short{color:var(--stop)}
+
+.qty{width:52px;background:var(--well);border:1px solid var(--rule);color:var(--text);font-family:var(--mono);font-size:12px;padding:5px 6px;text-align:center}
+.qty:focus-visible{outline:2px solid var(--copper-hi);outline-offset:1px}
+
+/* lifecycle */
+.stages{display:flex;gap:0;flex-wrap:wrap;padding:10px 14px;border-bottom:1px solid var(--rule-soft)}
+.stg{font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;padding:5px 11px;border:1px solid var(--rule);color:var(--dimmer);margin-right:-1px}
+.stg.done{color:var(--ok);border-color:var(--ok)}
+.stg.now{color:#160d06;background:var(--copper);border-color:var(--copper);font-weight:700}
+
+.batch{border-bottom:1px solid var(--rule-soft);padding:12px 14px}
+.batch:last-child{border-bottom:0}
+.batch .bh{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:baseline}
+.batch .bid{font-size:12.5px;color:var(--text-hi);letter-spacing:.05em}
+.batch .bmeta{font-size:10.5px;color:var(--dim)}
+.acts{display:flex;gap:6px;flex-wrap:wrap;margin-top:9px}
+.acts .btn{padding:6px 11px;font-size:10px}
+.split{display:flex;gap:8px;align-items:center;margin-top:9px;flex-wrap:wrap}
+.split label{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim)}
+
+.note{font-size:10.5px;border-left:2px solid var(--rule);padding:5px 9px;background:var(--panel-2);color:var(--dim);margin-top:8px;line-height:1.55}
+.note.ok{border-left-color:var(--ok);color:#a9c9a4}
+.note.warn{border-left-color:var(--warn);color:#dcc684}
+.note.stop{border-left-color:var(--stop);color:#e2a79f}
+
+/* ledger */
+.mv{display:grid;grid-template-columns:auto 1fr auto;gap:10px;padding:6px 14px;font-size:11px;border-bottom:1px solid var(--rule-soft)}
+.mv:last-child{border-bottom:0}
+.mv .t{color:var(--dimmer);white-space:nowrap}
+.mv .w{color:var(--text)}
+.mv .d{color:var(--dim);white-space:nowrap}
+.mv.neg .d{color:var(--stop)}
+.mv.pos .d{color:var(--ok)}
+
+/* print surfaces */
+.paper{background:#e9e5db;color:#1e2228;padding:14px;font-family:var(--mono);font-size:11px;line-height:1.5}
+.paper h4{margin:0 0 8px;font-size:12px;letter-spacing:.14em;text-transform:uppercase}
+.paper .kv{display:grid;grid-template-columns:auto 1fr;gap:3px 12px;font-size:10.5px}
+.paper .kv span:nth-child(odd){color:#5c6570}
+.label-sheet{display:grid;grid-template-columns:repeat(auto-fill,minmax(178px,1fr));gap:9px;padding:12px}
+.lbl{background:#f4f1ea;color:#1e2228;padding:9px;border:1px solid #cfc9bc}
+.lbl .top{font-size:9px;letter-spacing:.1em;color:#5c6570}
+.lbl .mid{font-size:12px;margin:2px 0 5px}
+.lbl svg{display:block;width:100%;height:44px}
+.lbl .hr{font-size:9px;letter-spacing:.22em;text-align:center;margin-top:2px}
+
+.watchstrip{margin:0;padding:0}
+.watchstrip .wf{padding:9px 14px;border-bottom:1px solid var(--rule-soft);font-size:11px;color:#dcc684;background:rgba(194,160,60,.06);border-left:2px solid var(--warn);line-height:1.55}
+.watchstrip .wf b{color:var(--text-hi);font-weight:400;display:block;margin-bottom:2px}
+.watchstrip .clean{padding:9px 14px;font-size:11px;color:var(--dimmer)}
+
+.gate{position:fixed;inset:0;background:rgba(8,10,13,.94);z-index:50;display:flex;align-items:center;justify-content:center;padding:20px}
+.gate.off{display:none}
+.gate-card{background:var(--panel);border:1px solid var(--rule);padding:26px 28px;max-width:400px;width:100%}
+.gate-card h2{margin:0 0 6px;font-size:13px;letter-spacing:.2em;text-transform:uppercase;color:var(--text-hi)}
+.gate-card p{margin:0 0 16px;font-size:11.5px;color:var(--dim);line-height:1.6}
+.gate-card input{width:100%;background:var(--well);border:1px solid var(--rule);color:var(--text);font-family:var(--mono);font-size:13px;padding:9px;margin-bottom:10px}
+.gate-card input:focus-visible{outline:2px solid var(--copper-hi);outline-offset:1px}
+.who{display:flex;flex-direction:column;gap:8px}
+</style>
+<meta name="description" content="Interactive demo: a stock rack turned into a production lifecycle, with a move log, printed travelers and barcodes you can scan. Runs on invented data.">
+<link rel="canonical" href="https://doncox.ai/demos/03-production-ledger.html">
+<meta name="theme-color" content="#07090c">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://doncox.ai/demos/03-production-ledger.html">
+<meta property="og:title" content="Rack-to-Receipt Production Ledger | Donald Cox">
+<meta property="og:description" content="Interactive demo: a stock rack turned into a production lifecycle, with a move log, printed travelers and barcodes you can scan. Runs on invented data.">
+<meta property="og:site_name" content="Donald Cox">
+<meta property="og:image" content="https://doncox.ai/assets/og.jpg">
+<meta property="og:image:width" content="2400">
+<meta property="og:image:height" content="1260">
+<meta property="og:image:alt" content="Donald Cox: I design and build the AI systems that run businesses.">
+<meta name="twitter:image" content="https://doncox.ai/assets/og.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/favicon.ico" sizes="48x48">
+<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+</head>
+<body>
+<main>
+<div class="wrap">
+
+  <div class="banner">
+    Demonstration environment. Invented rack, invented part variations, invented batches. It
+    reproduces the ledger and lifecycle logic of a system running in production at a manufacturer.
+    The barcodes are real: scan one with your phone. Timings are compressed, and the storefront
+    appears immediately where the live connector takes about thirty minutes.
+  </div>
+
+  <div class="mast">
+    <h1>Northbeam <span>Precision</span> / Machine Shop</h1>
+    <div class="readout">
+      <span>SIGNED IN</span><b id="whoami">nobody</b>
+      <button class="btn" id="switchUser" style="padding:5px 10px;font-size:10px">Switch</button>
+    </div>
+  </div>
+
+  <div class="cols">
+    <div>
+      <section class="panel">
+        <div class="panel-hd"><span class="lab">The rack</span><span class="lab" id="rackTotal"></span></div>
+        <div class="rack" id="rack"></div>
+        <div style="padding:0 12px 12px">
+          <div class="note" id="rackNote">Before this existed, the rack was in no system at all. Not accounting, not the storefront, not a spreadsheet. The count lived in one person's head.</div>
+        </div>
+      </section>
+
+      <section class="panel" style="margin-top:14px">
+        <div class="panel-hd"><span class="lab">Watcher</span><span class="lab">read only</span></div>
+        <div class="watchstrip" id="watch"></div>
+      </section>
+
+      <section class="panel" style="margin-top:14px">
+        <div class="panel-hd"><span class="lab">Move log</span><span class="lab">undo is a new reversing move</span></div>
+        <div id="ledger" style="max-height:260px;overflow-y:auto"></div>
+      </section>
+    </div>
+
+    <div>
+      <section class="panel">
+        <div class="panel-hd"><span class="lab">Work list</span><span class="lab">demand from the operations workbook</span></div>
+        <div class="worklist" id="worklist"></div>
+      </section>
+
+      <section class="panel" style="margin-top:14px">
+        <div class="panel-hd"><span class="lab">Batches</span><span class="lab" id="batchCount"></span></div>
+        <div id="batches"></div>
+      </section>
+
+      <section class="panel" style="margin-top:14px" id="printPanel" hidden>
+        <div class="panel-hd"><span class="lab">Printed</span><span class="lab" id="printWhat"></span></div>
+        <div id="printOut"></div>
+      </section>
+
+      <section class="panel" style="margin-top:14px">
+        <div class="panel-hd"><span class="lab">Downstream</span><span class="lab">accounting and storefront</span></div>
+        <div class="cols downstream">
+          <div style="padding:12px 14px"><div class="lab" style="margin-bottom:7px">Accounting</div><div id="acct"><div style="color:var(--dimmer);font-size:11px">Nothing received.</div></div></div>
+          <div class="downstream-b"><div class="lab" style="margin-bottom:7px">Storefront</div><div id="store"><div style="color:var(--dimmer);font-size:11px">Nothing listed.</div></div></div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <details class="drawer">
+    <summary>How this works</summary>
+    <div class="drawer-body">
+      <div class="prose">
+        <p><b>The premise had to be proved before any code was written.</b> Everyone believed the
+        accounting system already held the raw stock rack. It did not. Accounting held only the
+        blanks set aside for resale, which is a completely different pool of the same physical
+        thing. Had that not been checked, this ledger would have been double counting against live
+        financial records from the start. The rack pool is greenfield; the sale pool belongs to
+        accounting.</p>
+
+        <p><b>This demo shows the older batch-level shape.</b> The live system now tracks each part.
+        A batch is a card holding parts, and parts can split, merge and move separately. Every press
+        is planned, then applied, and a plan is refused if a part moved after it was made.</p>
+
+        <p><b>Corrections leave a full record.</b> A correction keeps the batch number and records the
+        full row before and after. Numbers a receipt was posted under are never silently changed: the
+        receipt is redone. The move and event logs are append only, enforced by the database in the
+        live system. An undo is a new reversing move.</p>
+
+        <p><b>Attribution is enforced at the server, not the screen.</b> An opaque overlay until a
+        name is picked is a convenience. The rule is that any state-changing call arriving without
+        an actor is rejected, so the gate cannot be bypassed by hitting the API directly. Steps that
+        write to accounting are restricted by role, on the server.</p>
+
+        <p><b>Unknown outcomes park for a human and never auto retry.</b> If a write to the
+        accounting system returns something the system does not understand, the claim stays open and
+        a person is told. Automatic retry against a financial system is how you get duplicate
+        receipts. Related, and learned the expensive way: a health check that can never pass is
+        indistinguishable from permanent failure. A two day outage here turned out to be a liveness
+        guard testing for an attribute the API bridge strips, so the guard could never pass and every
+        call reported a false outage.</p>
+
+        <p><b>Two print paths, deliberately separate.</b> Travelers print from the server straight
+        to a network printer, so there is no per workstation print agent and no printer name to
+        capture. Labels print through a small agent at the bench to a dedicated label printer. The
+        two never claim the same job, because two claimants means two sheets. In the live system an
+        unreachable printer gets its page back with a pause and a retry, and labels go out one at a
+        time. Accounting claims that never complete stay parked for a person.</p>
+
+        <p><b>The watcher's database connection is read only.</b> It has no insert,
+        update or delete path at all, and the connection itself is opened read only at the driver.
+        A watcher must never be able to corrupt the ledger it watches.</p>
+
+        <p><b>Measured.</b> In August, twenty five of twenty five isolated smoke tests passed with
+        nothing written to accounting, the storefront or the workbook, and twenty three of twenty
+        three on the older correction matrix. The 2.0 test suite stands at 487 passed. The watcher
+        has grown to two dozen rules. While designing the ledger, I found 101 units of demand on the wrong
+        work station, and several were already backordered. Nobody had done anything wrong. There had
+        simply never been anything watching.</p>
+
+        <p><b>On the barcodes.</b> These are Code 39, generated in the page from the batch
+        identifier, with no library. Code 39 was chosen over denser symbologies here because its
+        encoding table is small enough to verify by inspection and it needs no check digit, so the
+        demo can prove its own output is correct rather than asking you to trust it.</p>
+      </div>
+    </div>
+  </details>
+</div>
+
+<div class="gate" id="signin">
+  <div class="gate-card">
+    <h2>Sign in</h2>
+    <p>Every movement on this ledger is attributed. The server rejects any state change that
+       arrives without an actor, so the gate holds at the server.</p>
+    <div class="who">
+      <button class="btn" data-who="Machinist">Machinist</button>
+      <button class="btn" data-who="Admin">Admin</button>
+    </div>
+  </div>
+</div>
+
+<div class="gate off" id="pwgate">
+  <div class="gate-card">
+    <h2>Restricted step</h2>
+    <p>Steps that write to accounting are restricted by role, on the server. This demo adds a
+       password as a visible stand-in. Demo password is <b style="color:var(--copper-hi)">demo</b>.</p>
+    <input type="password" id="pw" placeholder="password" autocomplete="off">
+    <div id="pwErr" class="note stop" hidden></div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-p" id="pwOk">Receive</button>
+      <button class="btn" id="pwCancel">Cancel</button>
+    </div>
+  </div>
+</div>
+
+</main>
+<script>
+"use strict";
+/* =========================================================================
+   Rack-to-Receipt Production Ledger, demo. Invented rack and part variations.
+   Deterministic. No markup is ever built from a string.
+   ========================================================================= */
+
+const VARIATIONS = [
+  { id:"BLK-S-A-01", label:"Blank size S, profile A", start:42 },
+  { id:"BLK-S-A-02", label:"Blank size S, profile A", start:18 },
+  { id:"BLK-M-B-01", label:"Blank size M, profile B", start:24 },
+  { id:"BLK-M-C-01", label:"Blank size M, profile C", start:6  },
+  { id:"BLK-L-B-01", label:"Blank size L, profile B", start:0  }
+];
+
+const WORKLIST = [
+  { sku:"NB-ROD-0375-STD", name:"Guide Rod 0.375, Standard", variation:"BLK-S-A-01", need:6 },
+  { sku:"NB-ROD-0500-STD", name:"Guide Rod 0.500, Standard", variation:"BLK-M-B-01", need:4 },
+  { sku:"NB-ROD-0625-STD", name:"Guide Rod 0.625, Standard", variation:"BLK-L-B-01", need:3 }
+];
+
+const STAGES = ["machining","polish","qc","laser","assign","upload"];
+const ADMINS = ["Admin"];
+const DEMO_PASSWORD = "demo";
+
+const ST = {
+  corrections:[],
+  who:null, rack:{}, bad:0, ledger:[], batches:[], seq:0, clock:0,
+  pending:null, printed:null
+};
+const $ = id => document.getElementById(id);
+
+/* ---- DOM helpers ---- */
+function el(tag, opts, kids){
+  const n = document.createElement(tag);
+  if(opts){
+    if(opts.cls) n.className = opts.cls;
+    if(opts.text != null) n.textContent = opts.text;
+    if(opts.style) n.setAttribute("style", opts.style);
+    if(opts.attrs) for(const k in opts.attrs) n.setAttribute(k, opts.attrs[k]);
+  }
+  if(kids) kids.forEach(c=>{ if(c) n.appendChild(typeof c === "string" ? document.createTextNode(c) : c); });
+  return n;
+}
+function clear(n){ while(n.firstChild) n.removeChild(n.firstChild); }
+function esc(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+function svgNode(str){
+  const doc = new DOMParser().parseFromString(str,"image/svg+xml");
+  if(doc.getElementsByTagName("parsererror").length) return el("div",{cls:"lab",text:"unavailable"});
+  return document.importNode(doc.documentElement,true);
+}
+function stamp(){ ST.clock += 7; const m = 8*60 + ST.clock;
+  return String(Math.floor(m/60)).padStart(2,"0")+":"+String(m%60).padStart(2,"0"); }
+
+/* ---- Code 39 ----
+   Nine elements per character, alternating bar and space, exactly three of them wide.
+   No check digit in the standard, which is why the encoding can be verified by
+   inspection rather than trusted. */
+const C39 = {
+  "0":"nnnwwnwnn","1":"wnnwnnnnw","2":"nnwwnnnnw","3":"wnwwnnnnn","4":"nnnwwnnnw",
+  "5":"wnnwwnnnn","6":"nnwwwnnnn","7":"nnnwnnwnw","8":"wnnwnnwnn","9":"nnwwnnwnn",
+  "A":"wnnnnwnnw","B":"nnwnnwnnw","C":"wnwnnwnnn","D":"nnnnwwnnw","E":"wnnnwwnnn",
+  "F":"nnwnwwnnn","G":"nnnnnwwnw","H":"wnnnnwwnn","I":"nnwnnwwnn","J":"nnnnwwwnn",
+  "K":"wnnnnnnww","L":"nnwnnnnww","M":"wnwnnnnwn","N":"nnnnwnnww","O":"wnnnwnnwn",
+  "P":"nnwnwnnwn","Q":"nnnnnnwww","R":"wnnnnnwwn","S":"nnwnnnwwn","T":"nnnnwnwwn",
+  "U":"wwnnnnnnw","V":"nwwnnnnnw","W":"wwwnnnnnn","X":"nwnnwnnnw","Y":"wwnnwnnnn",
+  "Z":"nwwnwnnnn","-":"nwnnnnwnw",".":"wwnnnnwnn"," ":"nwwnnnwnn","$":"nwnwnwnnn",
+  "/":"nwnwnnnwn","+":"nwnnnwnwn","%":"nnnwnwnwn","*":"nwnnwnwnn"
+};
+function code39Elements(text){
+  const s = "*" + String(text).toUpperCase() + "*";
+  const els = [];
+  for(let i=0;i<s.length;i++){
+    const pat = C39[s[i]];
+    if(!pat) throw new Error("Code 39 cannot encode: " + s[i]);
+    for(let k=0;k<9;k++) els.push({ w: pat.charAt(k) === "w" ? 3 : 1, bar: k % 2 === 0 });
+    if(i < s.length - 1) els.push({ w:1, bar:false });   /* inter character gap */
+  }
+  return els;
+}
+function svgBarcode(text, height){
+  const els = code39Elements(text);
+  const total = els.reduce((a,e)=>a+e.w,0);
+  const quiet = 10;
+  const width = total + quiet * 2;
+  let body = '<rect width="'+width+'" height="'+height+'" fill="#f4f1ea"/>';
+  let x = quiet;
+  els.forEach(e=>{
+    if(e.bar) body += '<rect x="'+x+'" y="0" width="'+e.w+'" height="'+height+'" fill="#1e2228"/>';
+    x += e.w;
+  });
+  return '<svg viewBox="0 0 '+width+' '+height+'" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="barcode '+esc(text)+'">'+body+'</svg>';
+}
+
+/* ---- move log, an undo is a new reversing move ---- */
+function move(variation, delta, why, at){
+  ST.ledger.push({ t:at || stamp(), variation:variation, delta:delta, why:why, who:ST.who });
+  ST.rack[variation] = (ST.rack[variation] || 0) + delta;
+}
+function onHand(v){ return ST.rack[v] || 0; }
+
+/* ---- lifecycle ---- */
+function startBatch(sku, qty){
+  const item = WORKLIST.find(w=>w.sku === sku);
+  if(!item) return { ok:false, why:"unknown part" };
+  if(!ST.who) return { ok:false, why:"no actor" };
+  if(!Number.isInteger(qty)) return { ok:false, why:"quantity must be a whole number" };
+  if(qty <= 0) return { ok:false, why:"quantity must be positive" };
+  if(onHand(item.variation) < qty) return { ok:false, why:"not enough blanks on the rack" };
+  ST.seq++;
+  const at = stamp();
+  const b = {
+    id:"B-" + String(1000 + ST.seq),
+    sku:sku, name:item.name, variation:item.variation, qty:qty,
+    stage:"machining", started:at, by:ST.who,
+    good:null, recut:null, scrap:null,
+    printedTraveller:false, printedLabels:false,
+    assigned:false, received:false, status:"open",
+    corrected:0,
+    history:[{ t:at, what:"started, " + qty + " blanks consumed", who:ST.who }]
+  };
+  move(item.variation, -qty, "batch " + b.id + " started", at);
+  ST.batches.push(b);
+  return { ok:true, batch:b };
+}
+function advance(b){
+  if(b.status !== "open") return { ok:false, why:"batch is not open" };
+  const i = STAGES.indexOf(b.stage);
+  if(b.stage === "qc" && b.good === null) return { ok:false, why:"complete the batch before leaving qc" };
+  if(b.stage === "assign") return { ok:false, why:"use assign" };
+  if(i < 0 || i >= STAGES.length - 1) return { ok:false, why:"nothing after this stage" };
+  b.stage = STAGES[i+1];
+  b.history.push({ t:stamp(), what:"moved to " + b.stage, who:ST.who });
+  return { ok:true };
+}
+function complete(b, good, recut, scrap){
+  if(b.stage !== "qc") return { ok:false, why:"completion happens at qc" };
+  if(good + recut + scrap !== b.qty) return { ok:false, why:"good plus recut plus scrap must equal the batch quantity" };
+  const at = stamp();
+  b.good = good; b.recut = recut; b.scrap = scrap;
+  if(recut > 0) move(b.variation, recut, "batch " + b.id + " recut returned to the rack", at);
+  if(scrap > 0) ST.bad += scrap;
+  b.history.push({ t:at, what:"completed: " + good + " good, " + recut + " recut, " + scrap + " scrap", who:ST.who });
+  return { ok:true };
+}
+function printTraveller(b){
+  if(b.good === null) return { ok:false, why:"complete the batch first" };
+  b.printedTraveller = true;
+  b.history.push({ t:stamp(), what:"traveler printed from the server", who:ST.who });
+  return { ok:true, kind:"traveler" };
+}
+function printLabels(b){
+  if(!b.assigned) return { ok:false, why:"labels are queued at assign" };
+  b.printedLabels = true;
+  b.history.push({ t:stamp(), what:"labels printed at the bench", who:ST.who });
+  return { ok:true, kind:"labels" };
+}
+function assign(b){
+  if(b.stage !== "laser") return { ok:false, why:"assign happens after laser" };
+  if(b.good === null) return { ok:false, why:"complete the batch first" };
+  b.assigned = true; b.stage = "assign";
+  b.history.push({ t:stamp(), what:"appended to the next work station, append read back and verified", who:ST.who });
+  return { ok:true };
+}
+function receive(b, actor, password){
+  if(!b.assigned) return { ok:false, why:"assign before receiving" };
+  if(b.received) return { ok:false, why:"already received, a second receive is refused" };
+  if(ADMINS.indexOf(actor) < 0) return { ok:false, why:"role not permitted to write into accounting" };
+  if(password !== DEMO_PASSWORD) return { ok:false, why:"password rejected" };
+  b.received = true; b.stage = "upload"; b.status = "received";
+  b.history.push({ t:stamp(), what:"received into accounting, " + b.good + " units", who:actor });
+  return { ok:true };
+}
+/* A correction keeps the batch number and records the full row before and after. */
+function correct(b, newGood, actor){
+  if(b.good === null) return { ok:false, why:"nothing to correct yet" };
+  if(newGood < 0 || newGood + b.recut > b.qty) return { ok:false, why:"corrected count must fit the batch quantity" };
+  const newScrap = b.qty - newGood - b.recut;
+  const before = { good:b.good, recut:b.recut, scrap:b.scrap };
+  ST.bad += newScrap - b.scrap;
+  b.good = newGood; b.scrap = newScrap;
+  const at = stamp();
+  const entry = { batch:b.id, t:at, who:actor, before:before, after:{ good:b.good, recut:b.recut, scrap:b.scrap } };
+  ST.corrections.push(entry);
+  b.corrected = (b.corrected || 0) + 1;
+  b.history.push({ t:at, what:"corrected good count " + before.good + " to " + newGood + ". Full row saved before and after.", who:actor });
+  if(b.received) b.history.push({ t:at, what:"old accounting receipt cleared and the receipt leg run again for " + newGood + " units", who:actor });
+  return { ok:true, batch:b, entry:entry };
+}
+
+/* ---- watcher, read only ---- */
+function watch(){
+  const out = [];
+  ST.batches.forEach(b=>{
+    if(b.assigned && !b.printedLabels){
+      out.push({ id:"labels:"+b.id, t:"Batch " + b.id + " is assigned and its labels have not printed. Nothing reprints on its own, because two claimants means two sheets." });
+    }
+    if(b.good !== null && b.stage === "qc"){
+      out.push({ id:"stuck:"+b.id, t:"Batch " + b.id + " completed at qc and has not moved since. Stuck states are the ambiguity the lifecycle deliberately leaves behind, so something has to look at them." });
+    }
+    if(b.assigned && !b.received && b.printedLabels){
+      out.push({ id:"unreceived:"+b.id, t:"Batch " + b.id + " is assigned and labeled but has never reached accounting. Unknown outcomes park for a human and are never auto retried." });
+    }
+  });
+  if(ST.bad > 0) out.push({ id:"bad", t:ST.bad + " scrapped unit" + (ST.bad===1?"":"s") + " in the bad pool. Scrap is moved, never deleted, so the arithmetic still closes." });
+  return out;
+}
+
+/* ---- render ---- */
+function renderRack(){
+  const box = $("rack"); clear(box);
+  let total = 0;
+  VARIATIONS.forEach(v=>{
+    const n = onHand(v.id); total += n;
+    const row = el("div",{cls:"shelf" + (n === 0 ? " zero" : "")});
+    const left = el("div");
+    left.appendChild(el("div",{cls:"id",text:v.id}));
+    left.appendChild(el("div",{cls:"sub",text:v.label}));
+    const bl = el("div",{cls:"blanks"});
+    const show = Math.min(v.start, 44);
+    for(let i=0;i<show;i++) bl.appendChild(el("i",{cls: i < n ? "" : "taken"}));
+    left.appendChild(bl);
+    row.appendChild(left);
+    row.appendChild(el("div",{cls:"ct num",text:String(n)}));
+    box.appendChild(row);
+  });
+  $("rackTotal").textContent = total + " blanks, " + ST.bad + " scrapped";
+}
+function renderWorklist(){
+  const box = $("worklist"); clear(box);
+  WORKLIST.forEach(w=>{
+    const row = el("div",{cls:"row"});
+    const left = el("div");
+    left.appendChild(el("div",{cls:"id",style:"font-size:11.5px;color:var(--text-hi)",text:w.sku}));
+    const have = onHand(w.variation);
+    const shortfall = have < w.need;
+    left.appendChild(el("div",{cls:"need" + (shortfall ? " short" : ""),
+      text:w.name + " · need " + w.need + " · " + have + " blanks on the rack" + (shortfall ? " · short" : "")}));
+    row.appendChild(left);
+    const q = el("input",{cls:"qty num",attrs:{ type:"number", min:"1", value:String(Math.min(w.need, Math.max(have,1))), "aria-label":"quantity for " + w.sku }});
+    row.appendChild(q);
+    const b = el("button",{cls:"btn",text:"Start batch"});
+    let msg = null;
+    b.addEventListener("click", ()=>{
+      const r = startBatch(w.sku, Number(q.value) || 0);
+      if(!r.ok){
+        if(msg && msg.parentNode) msg.parentNode.removeChild(msg);
+        msg = el("div",{cls:"note stop",text:r.why});
+        left.appendChild(msg);
+        return;
+      }
+      renderAll();
+    });
+    row.appendChild(b);
+    box.appendChild(row);
+  });
+}
+function flash(where, msg){
+  const n = el("div",{cls:"note stop",text:msg});
+  where.appendChild(n);
+  setTimeout(()=>{ if(n.parentNode) n.parentNode.removeChild(n); }, 3200);
+}
+function renderBatches(){
+  const box = $("batches"); clear(box);
+  $("batchCount").textContent = ST.batches.length ? ST.batches.length + (ST.batches.length === 1 ? " batch" : " batches") : "";
+  if(!ST.batches.length){
+    box.appendChild(el("div",{style:"padding:14px;color:var(--dimmer);font-size:12px",text:"No batches yet. Start one from the work list."}));
+    return;
+  }
+  ST.batches.forEach(b=>{
+    const wrap = el("div",{cls:"batch"});
+    const bh = el("div",{cls:"bh"});
+    const l = el("span");
+    l.appendChild(el("span",{cls:"bid",text:b.id}));
+    l.appendChild(el("span",{cls:"bmeta",text:"  " + b.sku + " · " + b.qty + " from " + b.variation}));
+    bh.appendChild(l);
+    bh.appendChild(el("span",{cls:"bmeta",text:b.stage}));
+    wrap.appendChild(bh);
+
+    if(b.corrected) wrap.appendChild(el("div",{cls:"note ok",text:"Corrected " + b.corrected + (b.corrected === 1 ? " time" : " times") + ". Same batch number, with the full row saved before and after."}));
+
+    const st = el("div",{cls:"stages"});
+    STAGES.forEach(s=>{
+      const idx = STAGES.indexOf(b.stage);
+      const cls = STAGES.indexOf(s) < idx ? "stg done" : (s === b.stage ? "stg now" : "stg");
+      st.appendChild(el("span",{cls:cls,text:s}));
+    });
+    wrap.appendChild(st);
+
+    if(b.good !== null){
+      wrap.appendChild(el("div",{cls:"note",text:b.good + " good, " + b.recut + " recut returned to the rack, " + b.scrap + " scrap moved to the bad pool"}));
+    }
+
+    if(b.status !== "corrected"){
+      const acts = el("div",{cls:"acts"});
+      const add = (label, fn, primary)=>{
+        const btn = el("button",{cls:"btn" + (primary ? " btn-p" : ""),text:label});
+        btn.addEventListener("click", ()=>{
+          const r = fn();
+          if(r && !r.ok){ flash(wrap, r.why); return; }
+          if(r && r.kind) showPrint(b, r.kind);
+          renderAll();
+        });
+        acts.appendChild(btn);
+      };
+
+      if(b.stage === "qc" && b.good === null){
+        const sp = el("div",{cls:"split"});
+        const g = el("input",{cls:"qty num",attrs:{type:"number",min:"0",value:String(Math.max(b.qty-2,0)),"aria-label":"good"}});
+        const rc = el("input",{cls:"qty num",attrs:{type:"number",min:"0",value:"1","aria-label":"recut"}});
+        const sc = el("input",{cls:"qty num",attrs:{type:"number",min:"0",value:"1","aria-label":"scrap"}});
+        sp.appendChild(el("label",{text:"good"})); sp.appendChild(g);
+        sp.appendChild(el("label",{text:"recut"})); sp.appendChild(rc);
+        sp.appendChild(el("label",{text:"scrap"})); sp.appendChild(sc);
+        const done = el("button",{cls:"btn btn-p",text:"Complete"});
+        done.addEventListener("click", ()=>{
+          const r = complete(b, +g.value||0, +rc.value||0, +sc.value||0);
+          if(!r.ok){ flash(wrap, r.why); return; }
+          renderAll();
+        });
+        sp.appendChild(done);
+        wrap.appendChild(sp);
+      }
+
+      if(b.stage !== "assign" && b.stage !== "upload" && !(b.stage === "qc" && b.good === null) && !(b.stage === "laser" && !b.assigned)){
+        add("Advance", ()=>advance(b));
+      }
+      if(b.good !== null && !b.printedTraveller) add("Print traveler", ()=>printTraveller(b));
+      if(b.stage === "laser" && !b.assigned) add("Assign", ()=>assign(b), true);
+      if(b.assigned && !b.printedLabels) add("Print labels", ()=>printLabels(b));
+      if(b.assigned && !b.received) add("Receive into accounting", ()=>{ askPassword(b); return null; }, true);
+      if(b.good !== null) add("Correct", ()=>{
+        const target = Math.max(0, b.good - 1);
+        return correct(b, target, ST.who);
+      });
+      wrap.appendChild(acts);
+    }
+
+    const h = el("ul",{cls:"tl",style:"margin:10px 0 0;padding:0;border-left:1px solid var(--rule);margin-left:5px"});
+    b.history.forEach(e=>{
+      const li = el("li",{style:"list-style:none;position:relative;padding:0 0 8px 15px;font-size:10.5px;color:var(--dim)"});
+      li.appendChild(el("b",{style:"color:var(--text);font-weight:400",text:e.t + "  "}));
+      li.appendChild(document.createTextNode(e.what + " · " + e.who));
+      h.appendChild(li);
+    });
+    wrap.appendChild(h);
+    box.appendChild(wrap);
+  });
+}
+function renderLedger(){
+  const box = $("ledger"); clear(box);
+  if(!ST.ledger.length){
+    box.appendChild(el("div",{style:"padding:14px;color:var(--dimmer);font-size:11px",text:"No movements yet."}));
+    return;
+  }
+  ST.ledger.slice().reverse().forEach(m=>{
+    const row = el("div",{cls:"mv " + (m.delta < 0 ? "neg" : "pos")});
+    row.appendChild(el("span",{cls:"t num",text:m.t}));
+    row.appendChild(el("span",{cls:"w",text:m.variation + " · " + m.why + " · " + m.who}));
+    row.appendChild(el("span",{cls:"d num",text:(m.delta > 0 ? "+" : "") + m.delta}));
+    box.appendChild(row);
+  });
+}
+function renderWatch(){
+  const box = $("watch"); clear(box);
+  const f = watch();
+  if(!f.length){
+    box.appendChild(el("div",{cls:"clean",text:"Clean. The strip is hidden from the machinist when there is nothing to say."}));
+    return;
+  }
+  f.forEach(x=>{
+    const d = el("div",{cls:"wf"});
+    d.appendChild(el("b",{text:"open finding"}));
+    d.appendChild(document.createTextNode(x.t));
+    box.appendChild(d);
+  });
+}
+function renderDownstream(){
+  const a = $("acct"), s = $("store");
+  clear(a); clear(s);
+  const received = ST.batches.filter(b=>b.received);
+  if(!received.length) a.appendChild(el("div",{style:"color:var(--dimmer);font-size:11px",text:"Nothing received."}));
+  received.forEach(b=>{
+    const d = el("div",{style:"font-size:11px;padding:4px 0;border-bottom:1px solid var(--rule-soft)"});
+    d.appendChild(el("b",{style:"color:var(--text-hi);font-weight:400",text:b.sku}));
+    d.appendChild(document.createTextNode("  item receipt, " + b.good + " units, batch " + b.id));
+    a.appendChild(d);
+  });
+  if(!received.length) s.appendChild(el("div",{style:"color:var(--dimmer);font-size:11px",text:"Nothing listed."}));
+  received.forEach(b=>{
+    const d = el("div",{style:"font-size:11px;padding:4px 0;border-bottom:1px solid var(--rule-soft)"});
+    d.appendChild(el("b",{style:"color:var(--text-hi);font-weight:400",text:b.sku}));
+    d.appendChild(document.createTextNode("  stock " + b.good + ", via the connector"));
+    s.appendChild(d);
+  });
+}
+function showPrint(b, kind){
+  const p = $("printPanel"), o = $("printOut");
+  p.hidden = false; clear(o);
+  $("printWhat").textContent = kind === "traveler" ? "traveler, from the server over the network" : "labels, from the agent at the bench";
+  if(kind === "traveler"){
+    const pa = el("div",{cls:"paper"});
+    pa.appendChild(el("h4",{text:"Traveler  " + b.id}));
+    const kv = el("div",{cls:"kv"});
+    [["Part",b.sku],["Description",b.name],["Blank",b.variation],["Quantity",String(b.qty)],
+     ["Good",String(b.good)],["Recut",String(b.recut)],["Scrap",String(b.scrap)],
+     ["Started",b.started],["By",b.by]].forEach(([k,v])=>{
+      kv.appendChild(el("span",{text:k})); kv.appendChild(el("span",{text:v}));
+    });
+    pa.appendChild(kv);
+    pa.appendChild(el("div",{style:"margin-top:10px"},[svgNode(svgBarcode(b.id, 52))]));
+    pa.appendChild(el("div",{style:"text-align:center;letter-spacing:.22em;font-size:10px;margin-top:2px",text:b.id}));
+    o.appendChild(pa);
+  } else {
+    const sheet = el("div",{cls:"label-sheet"});
+    for(let i=0;i<b.good;i++){
+      const l = el("div",{cls:"lbl"});
+      l.appendChild(el("div",{cls:"top",text:"NORTHBEAM PRECISION"}));
+      l.appendChild(el("div",{cls:"mid",text:b.sku}));
+      l.appendChild(svgNode(svgBarcode(b.id, 44)));
+      l.appendChild(el("div",{cls:"hr",text:b.id}));
+      sheet.appendChild(l);
+    }
+    o.appendChild(sheet);
+    o.appendChild(el("div",{cls:"lab",style:"padding:0 12px 12px",
+      text:"scan one with your phone: it resolves to the batch identifier"}));
+  }
+}
+
+function renderAll(){
+  renderRack(); renderWorklist(); renderBatches(); renderLedger(); renderWatch(); renderDownstream();
+}
+
+/* ---- password gate ---- */
+function askPassword(b){
+  ST.pending = b;
+  $("pw").value = "";
+  $("pwErr").hidden = true;
+  $("pwgate").classList.remove("off");
+  $("pw").focus();
+}
+$("pwOk").addEventListener("click", ()=>{
+  const b = ST.pending; if(!b) return;
+  const r = receive(b, ST.who, $("pw").value);
+  if(!r.ok){
+    const e = $("pwErr"); e.hidden = false; e.textContent = r.why;
+    return;
+  }
+  $("pwgate").classList.add("off");
+  ST.pending = null;
+  renderAll();
+});
+$("pwCancel").addEventListener("click", ()=>{ $("pwgate").classList.add("off"); ST.pending = null; });
+$("pw").addEventListener("keydown", e=>{ if(e.key === "Enter") $("pwOk").click(); });
+
+/* ---- sign in ---- */
+document.querySelectorAll("[data-who]").forEach(b=>{
+  b.addEventListener("click", ()=>{
+    ST.who = b.dataset.who;
+    $("whoami").textContent = ST.who;
+    $("signin").classList.add("off");
+    renderAll();
+  });
+});
+$("switchUser").addEventListener("click", ()=>{ $("signin").classList.remove("off"); });
+
+/* ---- boot ---- */
+VARIATIONS.forEach(v=>{ ST.rack[v.id] = v.start; });
+renderAll();
+</script>
+<footer style="padding:18px 14px;font:13px/1.5 system-ui,sans-serif;color:#9aa4af;background:#07090c">Made-up data. <a href="/" style="color:#7cc8ff">Donald Cox</a> · <a href="/donald-cox-resume.pdf" style="color:#7cc8ff">Resume</a> · <a href="mailto:don@doncox.ai" style="color:#7cc8ff">don@doncox.ai</a> · <a href="/privacy/" style="color:#7cc8ff">Privacy</a> · <a href="/terms/" style="color:#7cc8ff">Terms</a></footer>
+</body>
+</html>

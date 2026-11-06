@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Shipping verification kiosk | Donald Cox</title>
+<meta name="description" content="A camera kiosk at a precision manufacturer that checks packed orders before they ship: a vision model reads, code decides, and written gates decide what gets released.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Shipping verification kiosk | Donald Cox">
+<meta property="og:description" content="A camera kiosk at a precision manufacturer that checks packed orders before they ship: a vision model reads, code decides, and written gates decide what gets released.">
+<link rel="icon" href="/favicon.ico" sizes="48x48">
+<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/assets/icon-192.png" type="image/png" sizes="192x192">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="manifest" href="/site.webmanifest">
+<meta name="theme-color" content="#07090c">
+<link rel="stylesheet" href="/assets/site.css">
+<link rel="canonical" href="https://doncox.ai/work/verification-kiosk/">
+<meta property="og:url" content="https://doncox.ai/work/verification-kiosk/">
+<meta property="og:image" content="https://doncox.ai/assets/og.jpg">
+<meta property="og:site_name" content="Donald Cox">
+<meta property="og:image:width" content="2400">
+<meta property="og:image:height" content="1260">
+<meta property="og:image:alt" content="Donald Cox: I design and build the AI systems that run businesses.">
+<meta name="twitter:image" content="https://doncox.ai/assets/og.jpg">
+<meta name="twitter:card" content="summary_large_image">
+</head>
+<body class="page">
+<a class="skip" href="#main">Skip to content</a>
+<header class="top"><div class="wrap"><a class="name" href="/">Donald Cox</a><nav aria-label="Main"><a href="/#systems">Systems</a><a href="/#detail">Results</a><a href="/#ship">How I ship</a><a href="/#demos">Demos</a><a href="/donald-cox-resume.pdf">Resume</a><a href="/#contact">Contact</a></nav></div></header>
+<nav aria-label="Breadcrumb" class="wrap crumb"><a href="/">Donald Cox</a> / <a href="/work/operations-platform/">Five systems, one shop floor</a></nav>
+<main id="main" class="wrap study">
+<h1>Shipping verification kiosk</h1>
+<dl class="summary">
+<dt>The system</dt><dd><span data-claim="K-stations">Two</span> camera stations where a vision model reports what it sees and code makes the decision, on <span data-claim="K-orders-b">roughly 40</span> orders a working day from a catalog full of near-identical variants.</dd>
+<dt>How it works</dt><dd>The model reads, and the order system stays ground truth. <span data-claim="K-families">9</span> conditions force a hold and <span data-claim="K-reviews">more than a dozen</span> send an order to review.</dd>
+<dt>Results</dt><dd><span data-claim="K-stopped">17</span> wrong boxes stopped and fixed in <span data-claim="K-weeks">12 weeks</span>, each proved by photos, at <span data-claim="K-cost">about $0.15</span> of model spend per order at list rates and <span data-claim="K-verify-time">about 9 seconds</span> a verify on one partial day.</dd>
+<dt>My role</dt><dd>Architect and engineer. I designed the system, set its rules and made the release calls.</dd>
+</dl>
+
+<h2>What it replaced</h2>
+<p>An operator used to compare a packed box against a screen. Products in this catalog can differ by one character: the same part in another size, or two versions with nearly the same name. Packers get it right almost every time, and when they miss, a customer has to be made whole. If someone said a box was short, nobody could prove otherwise. The check also had to fit the floor, or it would get ripped out.</p>
+
+<h2>How it works</h2>
+<p>The packer signs in, scans the order and takes a short photo sequence. The order lines come from the order system, never from the printed slip, because the slip is printed from the order and can't prove what is in the box.</p>
+<p>The model is not told the expected quantity or slip number. It reports what it sees for each line through a schema-checked answer, and code compares that with the order. Confidence is scored per line against a floor for each product type.</p>
+<figure class="diagram">
+<svg viewBox="0 0 640 170" role="img" aria-labelledby="kiosk-t">
+<title id="kiosk-t">Photos go to a vision read. Code compares that read with the order lines. The result is a pass or a stop for a person, and both go to the archive.</title>
+<rect class="box" x="10" y="30" width="100" height="56" rx="4"/><text x="60" y="63" text-anchor="middle">Photos</text>
+<rect class="box" x="150" y="30" width="130" height="56" rx="4"/><text x="215" y="63" text-anchor="middle">Vision read</text>
+<rect class="box" x="320" y="30" width="120" height="56" rx="4"/><text x="380" y="63" text-anchor="middle">Verdict code</text>
+<rect class="box" x="480" y="10" width="150" height="40" rx="4"/><text x="555" y="35" text-anchor="middle">Pass</text>
+<rect class="box" x="480" y="66" width="150" height="40" rx="4"/><text x="555" y="91" text-anchor="middle">Stop for a person</text>
+<rect class="box" x="320" y="124" width="310" height="36" rx="4"/><text x="475" y="147" text-anchor="middle">Archive: photos and the decision</text>
+<rect class="box" x="150" y="124" width="130" height="36" rx="4"/><text x="215" y="147" text-anchor="middle">Order lines</text>
+<path class="wire" d="M110 58 H150 M280 58 H320 M440 50 L480 30 M440 66 L480 86 M280 142 H300 V76 H320 M630 106 V124"/>
+</svg>
+<figcaption>The model's answer and the order lines first meet in code.</figcaption>
+</figure>
+<p>Rules come in two kinds. Gates only add stops, such as a lot that must be read off the box. Narrow lifts can turn a stop into a pass, and each needs stated evidence, such as a QR count that matches the order on a low-risk part. An override with a written note always lets the packer continue, so the system can block but never leaves a dead end. A local model on a GPU also reads each verification in shadow, and its disagreements go to a human queue.</p>
+<p>The verdict engine has reached v2.66, with <span data-claim="K-revisions">more than a dozen</span> releases served since August, in one workflow of <span data-claim="K-steps">72</span> steps across <span data-claim="K-hooks">5</span> webhooks.</p>
+
+<h2>Results</h2>
+<div class="table-wrap">
+<table class="numbers">
+<thead><tr><th>What</th><th>Value</th><th>How it was measured</th><th>Tag</th></tr></thead>
+<tbody>
+<tr><td>Wrong boxes stopped and fixed</td><td data-claim="K-stopped">17</td><td>Over <span data-claim="K-weeks">12 weeks</span>, each proved by comparing stopped and corrected photos. A floor</td><td>Measured</td></tr>
+<tr><td>Stops on correctly packed boxes</td><td data-claim="K-falsestops">89</td><td>From the same review</td><td>Measured</td></tr>
+<tr><td>Time per verify</td><td data-claim="K-verify-time">about 9 seconds</td><td>Station log, 35 verifies, one partial day. The wait for a verdict, not the whole order</td><td>Measured</td></tr>
+<tr><td>Model spend per order</td><td data-claim="K-cost">about $0.15</td><td>Token usage on 239 retained calls at list rates</td><td>Measured</td></tr>
+<tr><td>First-try pass</td><td data-claim="K-firsttry">78.5 to 87.5 percent</td><td>By month and station, August to October</td><td>Measured</td></tr>
+<tr><td>Verifies per order</td><td data-claim="K-verifies">1.15 to 1.29</td><td>Same months and stations</td><td>Measured</td></tr>
+</tbody>
+</table>
+</div>
+
+<h2 id="testing">How a change earns its way to the floor</h2>
+<p>A packer asked why the same order sometimes passes and sometimes stops, so I measured it. <span data-claim="K-flip">41 of 111</span> retries with byte-identical photos changed verdict. Most of those retries followed a bad result. <span data-claim="K-flipformat">10</span> flips were purely about format and <span data-claim="K-flippart">2</span> partly. A schema fixes format and nothing else, and I said so before building it. Structured output went live on the goods step in <span data-claim="K-schema">November 2026</span>.</p>
+<p>Gates are written before each run and don't change after it. One candidate prompt took its target fault from <span data-claim="K-v258-target">14 samples to 0</span>, and I rejected it, because a written gate caught a new false stop: a good two-lot order went from <span data-claim="K-v258-hold">1 hold in 10 to 10 in 10</span>, sweep and rerun combined. When a later schema run moved the count on <span data-claim="K-moved">2 lines</span>, the counts gate stayed failed as written, and the decision to ship was made with those facts on the table.</p>
+<p><span data-claim="K-twocand">Two</span> different candidates caused the same false hold about <span data-claim="K-twofalse">9 times in 10</span>, so I tested the rig itself: the live prompt on both arms, with only a code comment added to one. Requests matched byte for byte on <span data-claim="K-aa-pairs">8 of 8</span>, the arms came out about even, and the rejections stood. It cost <span data-claim="K-aa">$3.47</span>.</p>
+<p>Engine changes replay against up to <span data-claim="K-replay">2,830</span> stored final decisions. That layer compares old code with new and nothing else.</p>
+
+<h2>Problems it surfaced, and what I did about them</h2>
+<p>Measuring frame age found a quiet evidence bug on one station: old frames queued behind a network camera, so a photo could show the table up to <span data-claim="K-ghost">7.7 s</span> before the press. On the bench the old reader took <span data-claim="K-frames-old">68 of 300</span> frames and the new one took <span data-claim="K-frames-new">300 of 300</span>. Each capture now waits for a newer frame, and after <span data-claim="K-wait">2 seconds</span> it reports a camera fault.</p>
+<p><span data-claim="K-escapes">At least four</span> wrong shipments got through before the watcher existed, three of them after the pipeline had correctly named the problem. That is why a watcher now looks for exactly that pattern. Separately, <span data-claim="K-falsehold">7 of 16</span> overrides overrode a hold, and the 3 of those 7 checked from photos all had correct goods. That led me to trace each false-hold class.</p>
+<p>A station lock failed a real keystroke test, and I rolled it back on both stations the same night, with the page dark for about <span data-claim="K-lock-dark">2 minutes</span> after hours. A release kit that rolled back a healthy service, after <span data-claim="K-kit-31">31 seconds</span> of startup against a <span data-claim="K-kit-30">30-second</span> wait, now waits longer.</p>
+
+<h2>Where I would take it next</h2>
+<ul>
+<li>Make the lot read blind as well, since the model is still shown the expected lot and can copy it.</li>
+<li>Promote the slip barcode check from logging to deciding, once it reads more slips.</li>
+<li>Bring the shadow reader's human review queue back up to date, since its agreement alone proves nothing.</li>
+<li>Widen live QR scanning, which is limited because most stock has no QR label.</li>
+</ul>
+
+<h2>Stack</h2>
+<p>Claude vision, Python and JavaScript, a small web app on each station, a self-hosted workflow engine, a local open-weights model on a GPU as a shadow reader, and Claude Code for the build.</p>
+
+<h2>My role</h2>
+<p>I designed this system and I own it. I decided what the model may and may not decide, defined the gates before each run, read the failures, and made the release calls. I direct Claude Code agents to write much of the code and run the replays and reviews inside guard rails I set, and I measure drift with replays and live watchers. Ask me why any part works the way it does.</p>
+<p class="demo-link"><a href="/demos/04-verification-kiosk.html">Run the kiosk demo</a> on made-up orders.</p>
+</main>
+<footer class="site-foot"><div class="wrap"><p>Donald Cox</p><p class="legal"><a href="/privacy/">Privacy</a><a href="/terms/">Terms</a><a href="https://github.com/Donald-Cox" rel="noopener">GitHub</a></p></div></footer>
+</body>
+</html>
